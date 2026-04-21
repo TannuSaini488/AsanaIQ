@@ -1,0 +1,9 @@
+node_modules
+yoga-629bf-firebase-adminsdk-fbsvc-4895702ba1.json
+agents.md
+master_blueprint.md
+docs.md
+backend/.env
+backend/node_modules
+frontend/dist
+frontend/node_modules
