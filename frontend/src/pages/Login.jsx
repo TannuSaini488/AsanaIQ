@@ -20,14 +20,18 @@ function Login() {
     setError('');
     setLoading(true);
     try {
-      const { token, role, data } = await loginApi(form);
+      const { token, role, onboardingCompleted, data } = await loginApi(form);
       login({
         token,
         refreshToken: data?.refreshToken || '',
         expiresIn: data?.expiresIn || 0,
-        user: { email: form.email, role, localId: data?.localId || null },
+        user: { email: form.email, role, localId: data?.localId || null, onboardingCompleted: !!onboardingCompleted },
       });
-      navigate('/');
+      if (!onboardingCompleted) {
+        navigate(role === 'trainer' ? '/trainer-onboarding' : '/onboarding');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message);
     } finally {

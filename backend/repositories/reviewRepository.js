@@ -5,6 +5,23 @@ const AppError = require('../utils/appError');
 const REVIEWS_COLLECTION = 'reviews';
 const TRAINERS_COLLECTION = 'trainerProfiles';
 
+function toEpoch(dateValue) {
+  if (!dateValue) return 0;
+  if (dateValue instanceof Date) return dateValue.getTime();
+  if (typeof dateValue.toDate === 'function') return dateValue.toDate().getTime();
+  const parsed = new Date(dateValue);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
+function sortByCreatedAtDesc(items) {
+  return items.sort((a, b) => toEpoch(b.createdAt) - toEpoch(a.createdAt));
+}
+
+function isMissingIndexError(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  return err?.code === 9 || msg.includes('requires an index') || msg.includes('failed_precondition');
+}
+
 async function findBySessionId(sessionId) {
   const snap = await firestore
     .collection(REVIEWS_COLLECTION)
@@ -67,24 +84,48 @@ async function createReview({ sessionId, studentId, trainerId, rating, comment }
 }
 
 async function listByTrainerId(trainerId, { limit = 50 } = {}) {
-  const snap = await firestore
-    .collection(REVIEWS_COLLECTION)
-    .where('trainerId', '==', trainerId)
-    .orderBy('createdAt', 'desc')
-    .limit(limit)
-    .get();
+  try {
+    const snap = await firestore
+      .collection(REVIEWS_COLLECTION)
+      .where('trainerId', '==', trainerId)
+      .orderBy('createdAt', 'desc')
+      .limit(limit)
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    if (!isMissingIndexError(err)) throw err;
 
-  return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    // Fallback: allow review pages to work before composite indexes are deployed.
+    const fallbackLimit = Math.min(Math.max(limit, 200), 500);
+    const snap = await firestore
+      .collection(REVIEWS_COLLECTION)
+      .where('trainerId', '==', trainerId)
+      .limit(fallbackLimit)
+      .get();
+    return sortByCreatedAtDesc(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))).slice(0, limit);
+  }
 }
 
 async function listByStudentId(studentId, { limit = 100 } = {}) {
-  const snap = await firestore
-    .collection(REVIEWS_COLLECTION)
-    .where('studentId', '==', studentId)
-    .orderBy('createdAt', 'desc')
-    .limit(limit)
-    .get();
-  return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  try {
+    const snap = await firestore
+      .collection(REVIEWS_COLLECTION)
+      .where('studentId', '==', studentId)
+      .orderBy('createdAt', 'desc')
+      .limit(limit)
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    if (!isMissingIndexError(err)) throw err;
+
+    const fallbackLimit = Math.min(Math.max(limit, 200), 500);
+    const snap = await firestore
+      .collection(REVIEWS_COLLECTION)
+      .where('studentId', '==', studentId)
+      .limit(fallbackLimit)
+      .get();
+    return sortByCreatedAtDesc(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))).slice(0, limit);
+  }
 }
 
 module.exports = {

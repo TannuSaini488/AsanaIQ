@@ -1,12 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createReview, fetchTrainerReviews } from '../services/reviewService';
+import useAuth from '../hooks/useAuth';
+import { extractUserIdFromToken } from '../utils/jwt';
 
 function Reviews() {
+  const { token, user } = useAuth();
+  const role = user?.role || null;
+  const myUserId = extractUserIdFromToken(token) || user?.localId || null;
+  const isStudent = role === 'student';
+  const isTrainer = role === 'trainer';
+
   const [form, setForm] = useState({ sessionId: '', trainerId: '', rating: 5, comment: '' });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [trainerReviews, setTrainerReviews] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -15,6 +24,7 @@ function Reviews() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (!isStudent) return;
     setLoading(true);
     setError('');
     setMessage('');
@@ -32,13 +42,15 @@ function Reviews() {
     }
   };
 
-  const onLoadTrainerReviews = async () => {
-    if (!form.trainerId) return;
+  const loadTrainerReviews = async (trainerId) => {
+    if (!trainerId) return;
     setLoading(true);
     setError('');
+    setMessage('');
     try {
-      const data = await fetchTrainerReviews(form.trainerId);
+      const data = await fetchTrainerReviews(trainerId);
       setTrainerReviews(data);
+      setHasLoaded(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -46,34 +58,68 @@ function Reviews() {
     }
   };
 
+  useEffect(() => {
+    if (!isTrainer) return;
+    if (!myUserId) return;
+    loadTrainerReviews(myUserId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTrainer, myUserId]);
+
+  const onLoadTrainerReviews = async () => {
+    if (isTrainer) {
+      await loadTrainerReviews(myUserId);
+      return;
+    }
+    await loadTrainerReviews(form.trainerId);
+  };
+
   return (
     <section>
       <h1>Reviews</h1>
-      <form className="auth-form" style={{ maxWidth: 520 }} onSubmit={onSubmit}>
-        <label>
-          Session ID
-          <input name="sessionId" value={form.sessionId} onChange={onChange} required />
-        </label>
-        <label>
-          Rating
-          <input name="rating" type="number" min="0" max="5" step="0.1" value={form.rating} onChange={onChange} />
-        </label>
-        <label>
-          Comment
-          <input name="comment" value={form.comment} onChange={onChange} required />
-        </label>
-        <button className="primary-btn" type="submit" disabled={loading}>
-          {loading ? 'Submitting...' : 'Submit Review'}
-        </button>
-      </form>
+      {isStudent ? (
+        <form className="auth-form" style={{ maxWidth: 520 }} onSubmit={onSubmit}>
+          <label>
+            Session ID
+            <input name="sessionId" value={form.sessionId} onChange={onChange} required />
+          </label>
+          <label>
+            Rating
+            <input
+              name="rating"
+              type="number"
+              min="0"
+              max="5"
+              step="0.1"
+              value={form.rating}
+              onChange={onChange}
+            />
+          </label>
+          <label>
+            Comment
+            <input name="comment" value={form.comment} onChange={onChange} required />
+          </label>
+          <button className="primary-btn" type="submit" disabled={loading}>
+            {loading ? 'Submitting...' : 'Submit Review'}
+          </button>
+        </form>
+      ) : null}
 
       <div style={{ marginTop: 16, maxWidth: 520 }}>
-        <label>
-          Trainer ID
-          <input name="trainerId" value={form.trainerId} onChange={onChange} />
-        </label>
-        <button className="primary-btn" type="button" onClick={onLoadTrainerReviews} disabled={loading || !form.trainerId}>
-          Load Trainer Reviews
+        {isTrainer ? (
+          <p className="muted">Showing reviews for your trainer profile.</p>
+        ) : (
+          <label>
+            Trainer ID
+            <input name="trainerId" value={form.trainerId} onChange={onChange} />
+          </label>
+        )}
+        <button
+          className="primary-btn"
+          type="button"
+          onClick={onLoadTrainerReviews}
+          disabled={loading || (isTrainer ? !myUserId : !form.trainerId)}
+        >
+          {loading ? 'Loading...' : isTrainer ? 'Refresh My Reviews' : 'Load Trainer Reviews'}
         </button>
       </div>
 
@@ -92,6 +138,10 @@ function Reviews() {
             </div>
           ))}
         </div>
+      ) : hasLoaded ? (
+        <p className="muted" style={{ marginTop: 12 }}>
+          No reviews found.
+        </p>
       ) : null}
     </section>
   );

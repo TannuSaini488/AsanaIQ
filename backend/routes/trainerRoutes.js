@@ -5,17 +5,17 @@ const roleGuard = require('../middlewares/roleGuard');
 
 const router = express.Router();
 
-router.get('/me', verifyJwt, roleGuard('trainer', 'admin'), trainerController.getMine);
-router.put('/me', verifyJwt, roleGuard('trainer', 'admin'), trainerController.upsertMine);
-router.get('/me/availability', verifyJwt, roleGuard('trainer', 'admin'), trainerController.getMyAvailability);
-router.post('/me/availability', verifyJwt, roleGuard('trainer', 'admin'), trainerController.createMyAvailability);
+router.get('/me', verifyJwt, roleGuard('trainer'), trainerController.getMine);
+router.put('/me', verifyJwt, roleGuard('trainer'), trainerController.upsertMine);
+router.get('/me/availability', verifyJwt, roleGuard('trainer'), trainerController.getMyAvailability);
+router.post('/me/availability', verifyJwt, roleGuard('trainer'), trainerController.createMyAvailability);
 router.delete(
   '/me/availability/:slotId',
   verifyJwt,
-  roleGuard('trainer', 'admin'),
+  roleGuard('trainer'),
   trainerController.deleteMyAvailability,
 );
-router.get('/', verifyJwt, roleGuard('student', 'trainer', 'admin'), trainerController.getAll);
+router.get('/', verifyJwt, roleGuard('student', 'trainer'), trainerController.getAll);
 router.get('/:trainerId/availability', trainerController.getAvailability);
 
 module.exports = router;

@@ -65,6 +65,10 @@ export function AuthProvider({ children }) {
     setUser(userData);
   };
 
+  const updateUser = (updates) => {
+    setUser((prev) => (prev ? { ...prev, ...updates } : null));
+  };
+
   const logout = () => {
     clearPersistedAuthTokens();
     setToken('');
@@ -79,6 +83,7 @@ export function AuthProvider({ children }) {
       user,
       login,
       logout,
+      updateUser,
     }),
     [token, user]
   );

@@ -5,6 +5,7 @@ const smallText = z.string().trim().min(1).max(200);
 
 const studentProfileUpsertSchema = z
   .object({
+    name: z.string().trim().min(2).max(100).optional(),
     age: z.number().int().min(13).max(100),
     gender: genderSchema,
     weight: z.number().positive().max(500),

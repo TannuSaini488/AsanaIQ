@@ -12,6 +12,23 @@ const SESSION_TRANSITIONS = {
   cancel: { from: ['pending', 'confirmed'], to: 'cancelled' },
 };
 
+function toEpoch(dateValue) {
+  if (!dateValue) return 0;
+  if (dateValue instanceof Date) return dateValue.getTime();
+  if (typeof dateValue.toDate === 'function') return dateValue.toDate().getTime();
+  const parsed = new Date(dateValue);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
+function sortByScheduledStartDesc(items) {
+  return items.sort((a, b) => toEpoch(b.scheduledStart) - toEpoch(a.scheduledStart));
+}
+
+function isMissingIndexError(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  return err?.code === 9 || msg.includes('requires an index') || msg.includes('failed_precondition');
+}
+
 function toDateValue(value) {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -39,13 +56,26 @@ async function getSessionById(sessionId) {
 }
 
 async function listSessionsByStudentId(studentId, { limit = 100 } = {}) {
-  const snap = await firestore
-    .collection(SESSIONS_COLLECTION)
-    .where('studentId', '==', studentId)
-    .orderBy('scheduledStart', 'desc')
-    .limit(limit)
-    .get();
-  return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  try {
+    const snap = await firestore
+      .collection(SESSIONS_COLLECTION)
+      .where('studentId', '==', studentId)
+      .orderBy('scheduledStart', 'desc')
+      .limit(limit)
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    if (!isMissingIndexError(err)) throw err;
+
+    // Fallback: allow progress reports to work before composite indexes are deployed.
+    const fallbackLimit = Math.min(Math.max(limit, 200), 500);
+    const snap = await firestore
+      .collection(SESSIONS_COLLECTION)
+      .where('studentId', '==', studentId)
+      .limit(fallbackLimit)
+      .get();
+    return sortByScheduledStartDesc(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))).slice(0, limit);
+  }
 }
 
 /**

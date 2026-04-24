@@ -17,6 +17,7 @@ const trainerQuerySchema = z
 
 const trainerProfileUpsertSchema = z
   .object({
+    name: z.string().trim().min(2).max(100).optional(),
     experienceYears: z.number().min(0).max(80),
     specialization: z.array(z.string().trim().min(1).max(100)).max(20),
     certifications: z.array(z.string().trim().min(1).max(200)).max(30),

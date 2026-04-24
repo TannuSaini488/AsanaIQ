@@ -7,13 +7,18 @@ const {
 } = require('../validators/aiValidator');
 const config = require('../config');
 
+const AI_PROVIDER = String(process.env.AI_PROVIDER || 'gemini').trim().toLowerCase();
+function resolveApiKey() {
+  return AI_PROVIDER === 'openrouter' ? config.openrouterApiKey : config.geminiApiKey;
+}
+
 async function match(req, res, next) {
   try {
     const { student, trainers } = matchRequestSchema.parse(req.body);
     const result = await aiService.matchTrainer({
       student,
       trainers,
-      apiKey: config.geminiApiKey,
+      apiKey: resolveApiKey(),
     });
     res.success(result, 'Trainer match generated');
   } catch (err) {
@@ -27,7 +32,7 @@ async function plan(req, res, next) {
     const result = await aiService.generatePlan({
       userId: req.user.uid,
       studentProfile,
-      apiKey: config.geminiApiKey,
+      apiKey: resolveApiKey(),
     });
     res.success(result, 'Plan generated');
   } catch (err) {
@@ -43,7 +48,7 @@ async function summary(req, res, next) {
       sessionId: payload.sessionId,
       trainerNotes: payload.trainerNotes,
       chatTranscript: payload.chatTranscript,
-      apiKey: config.geminiApiKey,
+      apiKey: resolveApiKey(),
     });
     res.success(result, 'Session summary generated');
   } catch (err) {
@@ -57,7 +62,7 @@ async function progress(req, res, next) {
     const targetStudentId = studentId || req.user.uid;
     const result = await aiService.generateProgressFromStudentId({
       studentId: targetStudentId,
-      apiKey: config.geminiApiKey,
+      apiKey: resolveApiKey(),
     });
     res.success(result, 'Progress report generated');
   } catch (err) {

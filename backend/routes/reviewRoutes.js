@@ -6,6 +6,6 @@ const reviewController = require('../controllers/reviewController');
 const router = express.Router();
 
 router.post('/', verifyJwt, roleGuard('student'), reviewController.create);
-router.get('/trainer/:trainerId', verifyJwt, roleGuard('student', 'trainer', 'admin'), reviewController.listByTrainer);
+router.get('/trainer/:trainerId', verifyJwt, roleGuard('student', 'trainer'), reviewController.listByTrainer);
 
 module.exports = router;

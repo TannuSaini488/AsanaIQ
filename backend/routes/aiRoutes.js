@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/match', verifyJwt, roleGuard('student'), aiController.match);
 router.post('/plan', verifyJwt, roleGuard('student'), aiController.plan);
-router.post('/summary', verifyJwt, roleGuard('student', 'trainer', 'admin'), aiController.summary);
-router.post('/progress', verifyJwt, roleGuard('student', 'trainer', 'admin'), aiController.progress);
+router.post('/summary', verifyJwt, roleGuard('student', 'trainer'), aiController.summary);
+router.post('/progress', verifyJwt, roleGuard('student'), aiController.progress);
 
 module.exports = router;

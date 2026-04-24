@@ -5,7 +5,7 @@ const studentProfileController = require('../controllers/studentProfileControlle
 
 const router = express.Router();
 
-router.get('/me', verifyJwt, roleGuard('student', 'admin'), studentProfileController.getMine);
-router.put('/me', verifyJwt, roleGuard('student', 'admin'), studentProfileController.upsertMine);
+router.get('/me', verifyJwt, roleGuard('student'), studentProfileController.getMine);
+router.put('/me', verifyJwt, roleGuard('student'), studentProfileController.upsertMine);
 
 module.exports = router;

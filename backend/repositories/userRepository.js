@@ -37,4 +37,19 @@ async function getUserById(userId) {
   return { id: doc.id, ...doc.data() };
 }
 
-module.exports = { createUser, getUserById };
+/**
+ * Updates a user document in Firestore.
+ * @param {string} userId
+ * @param {Object} updates
+ */
+async function updateUser(userId, updates) {
+  const docRef = firestore.collection(USERS_COLLECTION).doc(userId);
+  await docRef.update({
+    ...updates,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  const updated = await docRef.get();
+  return { id: updated.id, ...updated.data() };
+}
+
+module.exports = { createUser, getUserById, updateUser };

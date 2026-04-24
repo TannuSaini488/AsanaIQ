@@ -14,7 +14,7 @@ async function listAvailableSlots(trainerId) {
 
 async function getMyTrainerProfile({ user }) {
   const role = user?.role || user?.customClaims?.role;
-  if (!['trainer', 'admin'].includes(role)) {
+  if (role !== 'trainer') {
     throw new AppError('INVALID_ROLE', { status: 403, code: 'INVALID_ROLE' });
   }
   return trainerRepository.getTrainerById(user.uid);
@@ -22,15 +22,20 @@ async function getMyTrainerProfile({ user }) {
 
 async function upsertMyTrainerProfile({ user, payload }) {
   const role = user?.role || user?.customClaims?.role;
-  if (!['trainer', 'admin'].includes(role)) {
+  if (role !== 'trainer') {
     throw new AppError('INVALID_ROLE', { status: 403, code: 'INVALID_ROLE' });
   }
-  return trainerRepository.upsertTrainerProfile(user.uid, payload);
+  const { name, ...profilePayload } = payload;
+  if (name) {
+    const userRepository = require('../repositories/userRepository');
+    await userRepository.updateUser(user.uid, { name });
+  }
+  return trainerRepository.upsertTrainerProfile(user.uid, profilePayload);
 }
 
 async function listMyAvailability({ user }) {
   const role = user?.role || user?.customClaims?.role;
-  if (!['trainer', 'admin'].includes(role)) {
+  if (role !== 'trainer') {
     throw new AppError('INVALID_ROLE', { status: 403, code: 'INVALID_ROLE' });
   }
   return trainerRepository.listTrainerAvailability(user.uid, { includeBooked: true });
@@ -38,7 +43,7 @@ async function listMyAvailability({ user }) {
 
 async function createMyAvailabilitySlot({ user, payload }) {
   const role = user?.role || user?.customClaims?.role;
-  if (!['trainer', 'admin'].includes(role)) {
+  if (role !== 'trainer') {
     throw new AppError('INVALID_ROLE', { status: 403, code: 'INVALID_ROLE' });
   }
   return trainerRepository.createTrainerAvailabilitySlot(user.uid, payload);
@@ -46,7 +51,7 @@ async function createMyAvailabilitySlot({ user, payload }) {
 
 async function deleteMyAvailabilitySlot({ user, slotId }) {
   const role = user?.role || user?.customClaims?.role;
-  if (!['trainer', 'admin'].includes(role)) {
+  if (role !== 'trainer') {
     throw new AppError('INVALID_ROLE', { status: 403, code: 'INVALID_ROLE' });
   }
   return trainerRepository.deleteTrainerAvailabilitySlot(user.uid, slotId);

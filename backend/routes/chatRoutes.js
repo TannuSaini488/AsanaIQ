@@ -8,14 +8,14 @@ const router = express.Router();
 router.get(
   '/:chatId/messages',
   verifyJwt,
-  roleGuard('student', 'trainer', 'admin'),
+  roleGuard('student', 'trainer'),
   chatController.getMessages,
 );
 
 router.post(
   '/:chatId/messages',
   verifyJwt,
-  roleGuard('student', 'trainer', 'admin'),
+  roleGuard('student', 'trainer'),
   chatController.createMessage,
 );
 

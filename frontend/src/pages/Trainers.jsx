@@ -249,7 +249,7 @@ function Trainers() {
         </div>
       )}
 
-      {loading && <p>Loading trainers...</p>}
+      {loading && <p>Loading {isStudentView ? 'trainers' : 'students'}...</p>}
       {error && <p className="auth-error">{error}</p>}
 
       <div className="trainers-layout">

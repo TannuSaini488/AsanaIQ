@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -10,13 +10,20 @@ import VideoCall from './pages/VideoCall';
 import Landing from './pages/Landing';
 import ProtectedRoute from './components/ProtectedRoute';
 import Onboarding from './pages/Onboarding';
+import TrainerOnboarding from './pages/TrainerOnboarding';
 import Progress from './pages/Progress';
 import Reviews from './pages/Reviews';
 
+// Routes where the full Navbar should be hidden
+const NO_NAVBAR_ROUTES = ['/onboarding', '/trainer-onboarding'];
+
 function App() {
+  const location = useLocation();
+  const hideNavbar = NO_NAVBAR_ROUTES.includes(location.pathname);
+
   return (
     <div className="app-shell">
-      <Navbar />
+      {!hideNavbar && <Navbar />}
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Landing />} />
@@ -49,15 +56,23 @@ function App() {
           <Route
             path="/onboarding"
             element={
-              <ProtectedRoute roles={['student', 'admin']}>
+              <ProtectedRoute roles={['student']} requireOnboarding={false}>
                 <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer-onboarding"
+            element={
+              <ProtectedRoute roles={['trainer']} requireOnboarding={false}>
+                <TrainerOnboarding />
               </ProtectedRoute>
             }
           />
           <Route
             path="/progress"
             element={
-              <ProtectedRoute roles={['student', 'trainer', 'admin']}>
+              <ProtectedRoute roles={['student']}>
                 <Progress />
               </ProtectedRoute>
             }
@@ -65,7 +80,7 @@ function App() {
           <Route
             path="/reviews"
             element={
-              <ProtectedRoute roles={['student', 'trainer', 'admin']}>
+              <ProtectedRoute roles={['student', 'trainer']}>
                 <Reviews />
               </ProtectedRoute>
             }
@@ -79,3 +94,4 @@ function App() {
 }
 
 export default App;
+

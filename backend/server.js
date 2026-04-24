@@ -46,7 +46,7 @@ const authLimiter = rateLimit({
 
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 5,
+  max: 20, // Increased for smoother local testing
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -78,4 +78,4 @@ const start = () => {
 
 start();
 
-module.exports = app;
+module.exports = app; // Trigger restart 2

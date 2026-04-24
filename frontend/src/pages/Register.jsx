@@ -29,9 +29,10 @@ function Register() {
           email: form.email,
           role,
           localId: data?.localId || data?.uid || null,
+          onboardingCompleted: false,
         },
       });
-      navigate('/');
+      navigate(form.role === 'trainer' ? '/trainer-onboarding' : '/onboarding');
     } catch (err) {
       setError(err.message);
     } finally {

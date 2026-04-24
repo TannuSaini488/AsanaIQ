@@ -64,8 +64,23 @@ async function register({ email, password, role }, { apiKey } = {}) {
     uid: userRecord.uid,
     email: userRecord.email,
     role,
+    onboardingCompleted: false,
     ...tokenBundle,
   };
+}
+
+async function checkOnboardingStatus(role, userId) {
+  let onboardingCompleted = false;
+  if (role === 'student') {
+    const studentProfileRepository = require('../repositories/studentProfileRepository');
+    const profile = await studentProfileRepository.getByUserId(userId);
+    onboardingCompleted = !!(profile && profile.onboardingCompleted);
+  } else if (role === 'trainer') {
+    const trainerRepository = require('../repositories/trainerRepository');
+    const profile = await trainerRepository.getTrainerById(userId);
+    onboardingCompleted = !!profile;
+  }
+  return onboardingCompleted;
 }
 
 async function login({ email, password }, { apiKey }) {
@@ -95,9 +110,13 @@ async function login({ email, password }, { apiKey }) {
   if (dbUser.status && dbUser.status !== 'active') {
     throw new AppError('ACCOUNT_SUSPENDED', { status: 403, code: 'ACCOUNT_SUSPENDED' });
   }
+
+  const onboardingCompleted = await checkOnboardingStatus(dbUser.role, dbUser.id);
+
   return {
     ...tokenBundle,
     role: dbUser.role || null,
+    onboardingCompleted,
   };
 }
 
@@ -113,10 +132,15 @@ async function refresh({ refreshToken }, { apiKey }) {
   if (dbUser.status && dbUser.status !== 'active') {
     throw new AppError('ACCOUNT_SUSPENDED', { status: 403, code: 'ACCOUNT_SUSPENDED' });
   }
+
+  const onboardingCompleted = await checkOnboardingStatus(dbUser.role, dbUser.id);
+
   return {
     ...tokenBundle,
     role: dbUser.role || null,
+    onboardingCompleted,
   };
 }
 
 module.exports = { register, login, refresh };
+

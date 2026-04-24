@@ -37,7 +37,7 @@ async function validateSessionAccess({ sessionId, userId }) {
 
 async function transitionSessionState({ sessionId, action, user }) {
   const role = user?.role || user?.customClaims?.role;
-  if (!['student', 'trainer', 'admin'].includes(role)) {
+  if (!['student', 'trainer'].includes(role)) {
     throw new AppError('INVALID_ROLE', { status: 403, code: 'INVALID_ROLE' });
   }
 
@@ -48,7 +48,7 @@ async function transitionSessionState({ sessionId, action, user }) {
   }
 
   const isParticipant = actorId === session.studentId || actorId === session.trainerId;
-  if (!isParticipant && role !== 'admin') {
+  if (!isParticipant) {
     throw new AppError('Not a participant of this session', {
       status: 403,
       code: 'SESSION_FORBIDDEN',
@@ -60,7 +60,7 @@ async function transitionSessionState({ sessionId, action, user }) {
 
 async function updateTrainerNotes({ sessionId, trainerNotes, user }) {
   const role = user?.role || user?.customClaims?.role;
-  if (!['trainer', 'admin'].includes(role)) {
+  if (role !== 'trainer') {
     throw new AppError('INVALID_ROLE', { status: 403, code: 'INVALID_ROLE' });
   }
 
@@ -68,7 +68,7 @@ async function updateTrainerNotes({ sessionId, trainerNotes, user }) {
   if (!session) {
     throw new AppError('Session not found', { status: 404, code: 'SESSION_NOT_FOUND' });
   }
-  if (role !== 'admin' && session.trainerId !== user.uid) {
+  if (session.trainerId !== user.uid) {
     throw new AppError('SESSION_FORBIDDEN', { status: 403, code: 'SESSION_FORBIDDEN' });
   }
 

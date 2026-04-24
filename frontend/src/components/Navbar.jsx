@@ -17,14 +17,23 @@ function Navbar() {
           About
         </NavLink>
         <NavLink to="/trainers" className="nav-item">
-          Trainers
+          {user?.role === 'trainer' ? 'Students' : 'Trainers'}
         </NavLink>
-        <NavLink to="/onboarding" className="nav-item">
-          Onboarding
-        </NavLink>
-        <NavLink to="/progress" className="nav-item">
-          Progress
-        </NavLink>
+        {user?.role === 'student' && (
+          <NavLink to="/onboarding" className="nav-item">
+            Onboarding
+          </NavLink>
+        )}
+        {user?.role === 'trainer' && (
+          <NavLink to="/trainer-onboarding" className="nav-item">
+            Trainer Setup
+          </NavLink>
+        )}
+        {user?.role === 'student' && (
+          <NavLink to="/progress" className="nav-item">
+            Progress
+          </NavLink>
+        )}
         <NavLink to="/reviews" className="nav-item">
           Reviews
         </NavLink>

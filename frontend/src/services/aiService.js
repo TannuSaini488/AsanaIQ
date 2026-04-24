@@ -19,9 +19,10 @@ export async function generatePlan(studentProfile) {
 }
 
 export async function generateProgress(studentId) {
+  const body = studentId ? { studentId } : {};
   const res = await requestWithLocalToken('/api/ai/progress', {
     method: 'POST',
-    body: { studentId },
+    body,
   });
   return res.data;
 }

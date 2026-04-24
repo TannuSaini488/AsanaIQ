@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getMyStudentProfile, upsertMyStudentProfile } from '../services/studentProfileService';
-import { generatePlan } from '../services/aiService';
+import useAuth from '../hooks/useAuth';
 
 const DEFAULT_FORM = {
+  name: '',
   age: 25,
   gender: 'female',
   weight: 65,
@@ -16,6 +18,8 @@ const DEFAULT_FORM = {
 };
 
 function Onboarding() {
+  const navigate = useNavigate();
+  const { updateUser } = useAuth();
   const [form, setForm] = useState(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,6 +70,7 @@ function Onboarding() {
     setMessage('');
     try {
       const payload = {
+        name: form.name,
         age: Number(form.age),
         gender: form.gender,
         weight: Number(form.weight),
@@ -84,9 +89,9 @@ function Onboarding() {
         onboardingCompleted: Boolean(form.onboardingCompleted),
       };
       await upsertMyStudentProfile(payload);
-      setMessage('Profile saved');
-      const aiPlan = await generatePlan(payload);
-      setPlan(aiPlan);
+      updateUser({ onboardingCompleted: true });
+      setMessage('Profile saved successfully');
+      navigate('/home');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -99,6 +104,10 @@ function Onboarding() {
       <h1>Student Onboarding</h1>
       {loading ? <p>Loading profile...</p> : null}
       <form onSubmit={onSubmit} className="auth-form" style={{ maxWidth: 520 }}>
+        <label>
+          Name
+          <input name="name" type="text" value={form.name} onChange={onChange} required />
+        </label>
         <label>
           Age
           <input name="age" type="number" min="13" max="100" value={form.age} onChange={onChange} />
@@ -151,7 +160,7 @@ function Onboarding() {
         {error ? <p className="auth-error">{error}</p> : null}
         {message ? <p className="success-text">{message}</p> : null}
         <button className="primary-btn" type="submit" disabled={saving}>
-          {saving ? 'Saving...' : 'Save & Generate AI Plan'}
+          {saving ? 'Saving...' : 'Save Profile'}
         </button>
       </form>
 
