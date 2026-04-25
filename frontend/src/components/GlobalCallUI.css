@@ -1,0 +1,191 @@
+.global-call-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Ringing Modal */
+.global-call-overlay.ringing {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.ringing-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px 40px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ringing-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: white;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-ring 1.5s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+  70% { box-shadow: 0 0 0 20px rgba(99, 102, 241, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+}
+
+.ringing-card h3 { margin: 0; font-size: 1.4rem; color: #1e293b; }
+.ringing-card p { margin: 0; color: #64748b; font-size: 1rem; }
+
+.ringing-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.btn-decline {
+  padding: 10px 24px;
+  border-radius: 99px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-decline:hover { background: #dc2626; }
+
+.btn-accept {
+  padding: 10px 24px;
+  border-radius: 99px;
+  border: none;
+  background: #22c55e;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-accept:hover { background: #16a34a; }
+
+
+/* Active Call UI */
+.global-call-overlay.active {
+  background: #0f172a;
+}
+
+.call-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.call-header {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 10;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 12px 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  color: white;
+}
+.call-header h2 { margin: 0 0 4px 0; font-size: 1.2rem; }
+.call-status { font-size: 0.9rem; color: #94a3b8; }
+
+.call-videos {
+  flex: 1;
+  position: relative;
+  background: #000;
+}
+
+.remote-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.local-video {
+  position: absolute;
+  bottom: 100px;
+  right: 32px;
+  width: 240px;
+  height: 135px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid #334155;
+  background: #1e293b;
+  z-index: 5;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  transform: scaleX(-1);
+}
+
+.call-controls {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  gap: 20px;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 16px 32px;
+  border-radius: 99px;
+  backdrop-filter: blur(10px);
+  align-items: center;
+}
+
+.btn-control {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-control:hover { background: rgba(255, 255, 255, 0.3); }
+.btn-control.off {
+  background: #ef4444;
+}
+
+.btn-end-call {
+  padding: 12px 32px;
+  border-radius: 99px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.btn-end-call:hover { background: #dc2626; }
+
+@media (max-width: 768px) {
+  .local-video {
+    width: 120px;
+    height: 160px;
+    bottom: 120px;
+    right: 16px;
+  }
+}

@@ -1,5 +1,9 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
 async function test() {
-  const apiKey = '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';
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('Missing OPENROUTER_API_KEY (set it in backend/.env)');
   const systemText = 'Return ONLY a single valid JSON object. No markdown fences, no comments, no trailing text. Ensure all required keys are present and types match exactly.';
   const userText = 'Analyze yoga progress and return JSON only with keys: {"progressScore":0-100,"consistencyRate":0-100,"strengthAreas":["string"],"riskAreas":["string"],"recommendation":"string"}. No diagnosis.\n\nSessions: []\n\nReviews: []';
   

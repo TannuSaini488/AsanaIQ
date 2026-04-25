@@ -7,6 +7,7 @@ const trainerRoutes = require('./trainerRoutes');
 const chatRoutes = require('./chatRoutes');
 const studentProfileRoutes = require('./studentProfileRoutes');
 const reviewRoutes = require('./reviewRoutes');
+const connectionRoutes = require('./connectionRoutes');
 const trainerController = require('../controllers/trainerController');
 
 const router = express.Router();
@@ -20,5 +21,6 @@ router.get('/availability/:trainerId', trainerController.getAvailability);
 router.use('/chats', chatRoutes);
 router.use('/student-profile', studentProfileRoutes);
 router.use('/reviews', reviewRoutes);
+router.use('/connections', connectionRoutes);
 
 module.exports = router;

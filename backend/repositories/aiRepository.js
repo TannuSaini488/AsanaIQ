@@ -19,8 +19,26 @@ const OLLAMA_MODEL = String(process.env.OLLAMA_MODEL || 'llama3.1:8b').trim();
 const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS || 30000);
 
 const OPENROUTER_BASE_URL = String(process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1').replace(/\/+$/, '');
-const OPENROUTER_MODEL = String(process.env.OPENROUTER_MODEL || 'mistralai/mistral-7b-instruct').trim();
+const OPENROUTER_MODEL = String(process.env.OPENROUTER_MODEL || 'openrouter/auto').trim();
+const OPENROUTER_FALLBACK_MODEL = String(process.env.OPENROUTER_FALLBACK_MODEL || 'openrouter/auto').trim();
 const OPENROUTER_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS || 30000);
+
+function normalizeHttpStatus(value, fallback = 500) {
+  const n = Number(value);
+  if (Number.isInteger(n) && n >= 100 && n <= 599) return n;
+  return fallback;
+}
+
+function isOpenRouterModelUnavailable({ status, message }) {
+  const msg = String(message || '').toLowerCase();
+  return (
+    status === 404 ||
+    msg.includes('no endpoints found') ||
+    msg.includes('model not found') ||
+    msg.includes('invalid model') ||
+    msg.includes('unknown model')
+  );
+}
 
 function normalizeModelName(model) {
   const raw = String(model || '').trim();
@@ -307,54 +325,87 @@ async function requestOpenRouterJson({ apiKey, promptParts, maxOutputTokens = 70
     'Return ONLY a single valid JSON object. No markdown fences, no comments, no trailing text. ' +
     'Ensure all required keys are present and types match exactly.';
 
-  let res;
-  try {
-    res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://yoga-app.local',
-        'X-Title': 'YogaTrainerMarketplace',
-      },
-      body: JSON.stringify({
-        model: OPENROUTER_MODEL,
-        messages: [
-          { role: 'system', content: systemText },
-          { role: 'user', content: userText },
-        ],
-        max_tokens: maxOutputTokens,
-        temperature: 0.2,
-      }),
-      signal: controller.signal,
-    });
-  } catch (err) {
-    if (err?.name === 'AbortError') {
-      throw new AppError('OpenRouter request timed out', { status: 504, code: 'OPENROUTER_TIMEOUT', expose: true });
+  const doFetch = async (model) => {
+    let res;
+    try {
+      res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'HTTP-Referer': 'https://yoga-app.local',
+          'X-Title': 'YogaTrainerMarketplace',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemText },
+            { role: 'user', content: userText },
+          ],
+          max_tokens: maxOutputTokens,
+          temperature: 0.2,
+        }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        throw new AppError('OpenRouter request timed out', { status: 504, code: 'OPENROUTER_TIMEOUT', expose: true });
+      }
+      throw new AppError('OpenRouter is unreachable', { status: 503, code: 'OPENROUTER_UNAVAILABLE', expose: true });
     }
-    throw new AppError('OpenRouter is unreachable', { status: 503, code: 'OPENROUTER_UNAVAILABLE', expose: true });
+
+    const responseBody = await res.json().catch(() => ({}));
+    if (!res.ok || responseBody?.error) {
+      const errorMessage = responseBody?.error?.message || 'OpenRouter request failed';
+      const statusCode = normalizeHttpStatus(responseBody?.error?.code, res.status || 500);
+
+      if (isOpenRouterModelUnavailable({ status: statusCode, message: errorMessage })) {
+        throw new AppError(
+          `OpenRouter model unavailable (${model}). ${errorMessage}. ` +
+            'Set OPENROUTER_MODEL to a valid model id, or use openrouter/auto.',
+          { status: statusCode, code: 'OPENROUTER_MODEL_UNAVAILABLE', expose: true },
+        );
+      }
+
+      throw new AppError(errorMessage, { status: statusCode, code: 'OPENROUTER_ERROR', expose: true });
+    }
+
+    const text = responseBody?.choices?.[0]?.message?.content;
+    if (!text) {
+      throw new AppError('OpenRouter response missing content', {
+        status: 502,
+        code: 'OPENROUTER_BAD_RESPONSE',
+        expose: true,
+      });
+    }
+
+    try {
+      return JSON.parse(extractJsonText(text));
+    } catch (_parseErr) {
+      // eslint-disable-next-line no-console
+      console.warn('[openrouter] parse error', { model, snippet: String(text).slice(0, 300) });
+      throw new AppError('OpenRouter response not valid JSON', { status: 502, code: 'OPENROUTER_PARSE_ERROR', expose: true });
+    }
+  };
+
+  try {
+    return await doFetch(OPENROUTER_MODEL);
+  } catch (err) {
+    const fallback = OPENROUTER_FALLBACK_MODEL;
+    const primary = OPENROUTER_MODEL;
+    const shouldRetry =
+      err instanceof AppError &&
+      err.code === 'OPENROUTER_MODEL_UNAVAILABLE' &&
+      fallback &&
+      fallback !== primary;
+
+    if (!shouldRetry) throw err;
+
+    // eslint-disable-next-line no-console
+    console.warn('[openrouter] retrying with fallback model', { primary, fallback });
+    return await doFetch(fallback);
   } finally {
     clearTimeout(timeout);
-  }
-
-  const responseBody = await res.json().catch(() => ({}));
-  if (!res.ok || responseBody?.error) {
-    const errorMessage = responseBody?.error?.message || 'OpenRouter request failed';
-    const statusCode = responseBody?.error?.code || res.status || 500;
-    throw new AppError(errorMessage, { status: statusCode, code: 'OPENROUTER_ERROR', expose: true });
-  }
-
-  const text = responseBody?.choices?.[0]?.message?.content;
-  if (!text) {
-    throw new AppError('OpenRouter response missing content', { status: 502, code: 'OPENROUTER_BAD_RESPONSE', expose: true });
-  }
-
-  try {
-    return JSON.parse(extractJsonText(text));
-  } catch (_parseErr) {
-    // eslint-disable-next-line no-console
-    console.warn('[openrouter] parse error', { model: OPENROUTER_MODEL, snippet: String(text).slice(0, 300) });
-    throw new AppError('OpenRouter response not valid JSON', { status: 502, code: 'OPENROUTER_PARSE_ERROR', expose: true });
   }
 }
 

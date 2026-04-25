@@ -57,6 +57,33 @@ async function createMessage(chatId, { senderId, messageType, content }) {
   return { id: saved.id, ...saved.data() };
 }
 
+async function markMessagesRead(chatId, userId) {
+  const chatRef = firestore.collection(CHATS_COLLECTION).doc(chatId);
+  const snap = await chatRef
+    .collection(MESSAGES_SUBCOLLECTION)
+    .orderBy('timestamp', 'desc')
+    .limit(30)
+    .get();
+
+  const batch = firestore.batch();
+  let updatedCount = 0;
+
+  snap.docs.forEach((doc) => {
+    const data = doc.data();
+    const readBy = data.readBy || [];
+    if (!readBy.includes(userId)) {
+      readBy.push(userId);
+      batch.update(doc.ref, { readBy });
+      updatedCount++;
+    }
+  });
+
+  if (updatedCount > 0) {
+    await batch.commit();
+  }
+  return updatedCount;
+}
+
 async function getTranscriptBySessionId(sessionId, { limit = 500 } = {}) {
   const chatsSnap = await firestore
     .collection(CHATS_COLLECTION)
@@ -86,5 +113,6 @@ module.exports = {
   getChatById,
   listMessages,
   createMessage,
+  markMessagesRead,
   getTranscriptBySessionId,
 };

@@ -12,7 +12,7 @@ async function persistReport({ userId, sessionId = null, type, inputSnapshot, ge
   const provider = String(process.env.AI_PROVIDER || 'ollama').trim().toLowerCase();
   const modelVersion =
     provider === 'openrouter'
-      ? String(process.env.OPENROUTER_MODEL || 'mistralai/mistral-7b-instruct').trim()
+      ? String(process.env.OPENROUTER_MODEL || 'openrouter/auto').trim()
       : provider === 'ollama'
       ? String(process.env.OLLAMA_MODEL || 'ollama').trim()
       : String(process.env.GEMINI_MODEL || 'gemini').trim();

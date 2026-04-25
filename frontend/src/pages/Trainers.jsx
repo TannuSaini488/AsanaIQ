@@ -4,6 +4,7 @@ import { fetchTrainers } from '../services/trainerService';
 import { matchBestTrainer } from '../services/aiService';
 import { createMySlot, deleteMySlot, fetchMySlots, fetchSlots } from '../services/slotService';
 import { bookSession } from '../services/sessionService';
+import { getMyConnections, requestConnection, updateConnectionStatus } from '../services/connectionService';
 import { formatSlotLabel } from '../utils/formatSlot';
 import useAuth from '../hooks/useAuth';
 
@@ -23,6 +24,8 @@ function Trainers() {
   const [slotsLoading, setSlotsLoading] = useState({});
   const [selectedTrainerId, setSelectedTrainerId] = useState('');
   const [sessionByTrainer, setSessionByTrainer] = useState({});
+  const [connections, setConnections] = useState([]);
+  const [connectionActionLoading, setConnectionActionLoading] = useState(false);
   const [trainerSlots, setTrainerSlots] = useState([]);
   const [trainerSlotsLoading, setTrainerSlotsLoading] = useState(false);
   const [slotForm, setSlotForm] = useState({ date: '', startTime: '', endTime: '' });
@@ -35,8 +38,12 @@ function Trainers() {
       setLoading(true);
       setError('');
       try {
-        const data = await fetchTrainers();
-        setTrainers(data);
+        const [trainerData, connectionData] = await Promise.all([
+          fetchTrainers(),
+          getMyConnections(),
+        ]);
+        setTrainers(trainerData);
+        setConnections(connectionData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -178,6 +185,42 @@ function Trainers() {
   const selectedId = selectedTrainer ? getTrainerId(selectedTrainer) : '';
   const selectedSessionId = sessionByTrainer[selectedId] || '';
 
+  const activeConnection = connections.find(c => c.trainerId === selectedId || c.studentId === selectedId);
+
+  const handleConnect = async () => {
+    if (!selectedId) return;
+    setConnectionActionLoading(true);
+    try {
+      const res = await requestConnection(selectedId);
+      // Determine studentId and trainerId based on role
+      const requesterId = user.uid;
+      const role = user.role;
+      const connData = { 
+        ...res, 
+        requesterId,
+        studentId: role === 'trainer' ? selectedId : requesterId,
+        trainerId: role === 'trainer' ? requesterId : selectedId
+      };
+      setConnections(prev => [...prev, connData]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setConnectionActionLoading(false);
+    }
+  };
+
+  const handleConnectionResponse = async (connectionId, status) => {
+    setConnectionActionLoading(true);
+    try {
+      const res = await updateConnectionStatus(connectionId, status);
+      setConnections(prev => prev.map(c => c.id === connectionId ? { ...c, status: res.status } : c));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setConnectionActionLoading(false);
+    }
+  };
+
   const openChat = () => {
     if (!selectedId) return;
     navigate(`/chat?peerId=${encodeURIComponent(selectedId)}`);
@@ -314,24 +357,49 @@ function Trainers() {
               </>
             )}
             <div className="slot-actions">
-              <button type="button" className="primary-btn" onClick={openChat}>
-                Chat
-              </button>
-              <button type="button" className="primary-btn" onClick={openVideoCall}>
-                Video Call
-              </button>
-              {isStudentView ? (
-                <button
-                  type="button"
-                  className="primary-btn"
-                  onClick={() => loadSlots(selectedId)}
-                  disabled={slotsLoading[selectedId]}
-                >
-                  {slotsLoading[selectedId] ? 'Loading...' : 'Show Slots'}
+              {!activeConnection ? (
+                <button type="button" className="primary-btn" onClick={handleConnect} disabled={connectionActionLoading}>
+                  {connectionActionLoading ? 'Sending...' : 'Connect'}
                 </button>
-              ) : null}
+              ) : activeConnection.status === 'pending' ? (
+                (activeConnection.requesterId === user.uid || (!activeConnection.requesterId && isStudentView)) ? (
+                  <button type="button" className="primary-btn" disabled>
+                    Request Pending...
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" className="primary-btn" onClick={() => handleConnectionResponse(activeConnection.id, 'accepted')} disabled={connectionActionLoading}>
+                      Accept Request
+                    </button>
+                    <button type="button" className="secondary-btn" onClick={() => handleConnectionResponse(activeConnection.id, 'rejected')} disabled={connectionActionLoading} style={{ background: '#f87171', color: 'white', border: 'none' }}>
+                      Reject
+                    </button>
+                  </>
+                )
+              ) : activeConnection.status === 'accepted' ? (
+                <>
+                  <button type="button" className="primary-btn" onClick={openChat}>
+                    Chat
+                  </button>
+                  <button type="button" className="primary-btn" onClick={openVideoCall}>
+                    Video Call
+                  </button>
+                  {isStudentView ? (
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      onClick={() => loadSlots(selectedId)}
+                      disabled={slotsLoading[selectedId]}
+                    >
+                      {slotsLoading[selectedId] ? 'Loading...' : 'Show Slots'}
+                    </button>
+                  ) : null}
+                </>
+              ) : (
+                <p className="muted">Connection {activeConnection.status}</p>
+              )}
             </div>
-            {isStudentView && !selectedSessionId ? (
+            {isStudentView && !selectedSessionId && activeConnection?.status === 'accepted' ? (
               <p className="muted">Book a slot first for auto-filled session in Video Call.</p>
             ) : null}
             {isStudentView && slotsByTrainer[selectedId] && (

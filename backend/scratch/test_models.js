@@ -1,6 +1,10 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
 const fetch = globalThis.fetch;
 async function test() {
-  const apiKey = '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';
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('Missing OPENROUTER_API_KEY (set it in backend/.env)');
   
   const modelsToTest = [
     'meta-llama/llama-3.2-3b-instruct:free',

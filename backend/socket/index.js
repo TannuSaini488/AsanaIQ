@@ -1,6 +1,6 @@
 const { Server } = require('socket.io');
 const connectionRegistry = require('../services/connectionRegistry');
-const sessionService = require('../services/sessionService');
+const connectionService = require('../services/connectionService');
 const admin = require('../config/firebaseAdmin');
 const userRepository = require('../repositories/userRepository');
 
@@ -66,58 +66,73 @@ function initSocket(httpServer) {
           });
         };
 
-        const emitChat = ({ senderId, receiverId, sessionId, message }) => {
-          const payload = { senderId, receiverId, sessionId, message, ts: Date.now() };
-          if (sessionId) {
-            io.to(sessionId).emit('chat_message', payload);
+        const emitChat = ({ senderId, receiverId, connectionId, message, messageType }) => {
+          const payload = { senderId, receiverId, connectionId, message, messageType, ts: Date.now() };
+          if (connectionId) {
+            io.to(connectionId).emit('chat_message', payload);
           } else if (receiverId) {
             emitToUser(receiverId, 'chat_message', payload);
           }
         };
 
-        socket.on('join_session', async ({ sessionId }, ack) => {
+        socket.on('join_connection', async ({ connectionId }, ack) => {
           try {
-            await sessionService.validateSessionAccess({ sessionId, userId });
-            socket.join(sessionId);
+            await connectionService.validateConnectionAccess({ connectionId, userId });
+            socket.join(connectionId);
             if (ack) ack({ ok: true });
           } catch (err) {
             if (ack) ack({ ok: false, code: err.code, message: err.message });
           }
         });
 
-        socket.on('call_user', async ({ senderId, receiverId, sessionId, signal }) => {
+        socket.on('call_user', async ({ senderId, receiverId, connectionId, signal }) => {
           if (senderId !== userId) return;
           try {
-            await sessionService.validateSessionAccess({ sessionId, userId: senderId });
-            emitToUser(receiverId, 'call_user', { senderId, receiverId, sessionId, signal });
+            await connectionService.validateConnectionAccess({ connectionId, userId: senderId });
+            emitToUser(receiverId, 'call_user', { senderId, receiverId, connectionId, signal });
           } catch (err) {
-            socket.emit('session_error', { code: err.code, message: err.message });
+            socket.emit('connection_error', { code: err.code, message: err.message });
           }
         });
 
-        socket.on('answer_call', async ({ senderId, receiverId, sessionId, signal }) => {
+        socket.on('answer_call', async ({ senderId, receiverId, connectionId, signal }) => {
           if (senderId !== userId) return;
           try {
-            await sessionService.validateSessionAccess({ sessionId, userId: senderId });
-            emitToUser(receiverId, 'answer_call', { senderId, receiverId, sessionId, signal });
+            await connectionService.validateConnectionAccess({ connectionId, userId: senderId });
+            emitToUser(receiverId, 'answer_call', { senderId, receiverId, connectionId, signal });
           } catch (err) {
-            socket.emit('session_error', { code: err.code, message: err.message });
+            socket.emit('connection_error', { code: err.code, message: err.message });
           }
         });
 
-        socket.on('ice_candidate', async ({ senderId, receiverId, sessionId, signal }) => {
+        socket.on('ice_candidate', async ({ senderId, receiverId, connectionId, signal }) => {
           if (senderId !== userId) return;
           try {
-            await sessionService.validateSessionAccess({ sessionId, userId: senderId });
-            emitToUser(receiverId, 'ice_candidate', { senderId, receiverId, sessionId, signal });
+            await connectionService.validateConnectionAccess({ connectionId, userId: senderId });
+            emitToUser(receiverId, 'ice_candidate', { senderId, receiverId, connectionId, signal });
           } catch (err) {
-            socket.emit('session_error', { code: err.code, message: err.message });
+            socket.emit('connection_error', { code: err.code, message: err.message });
           }
         });
 
-        socket.on('chat_message', ({ senderId, receiverId, sessionId, message }) => {
+        socket.on('chat_message', ({ senderId, receiverId, connectionId, message, messageType }) => {
           if (senderId !== userId) return;
-          emitChat({ senderId, receiverId, sessionId, message });
+          emitChat({ senderId, receiverId, connectionId, message, messageType });
+        });
+
+        socket.on('mark_messages_read', async ({ connectionId, receiverId }) => {
+          try {
+            await connectionService.validateConnectionAccess({ connectionId, userId });
+            const chatRepository = require('../repositories/chatRepository');
+            await chatRepository.markMessagesRead(connectionId, userId);
+            
+            // Broadcast to the other user that messages were read
+            if (receiverId) {
+              emitToUser(receiverId, 'messages_read', { connectionId, readerId: userId });
+            }
+          } catch (err) {
+            console.error('Error marking messages read:', err);
+          }
         });
 
         socket.on('presence_check', ({ userId: targetUserId }, ack) => {
