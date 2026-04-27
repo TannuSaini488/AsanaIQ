@@ -14,9 +14,9 @@ const DEFAULT_FORM = {
   bio: '',
 };
 
-function TrainerOnboarding() {
+function TrainerOnboarding({ isEmbedded = false }) {
   const navigate = useNavigate();
-  const { updateUser } = useAuth();
+  const { updateUser, user } = useAuth();
   const [form, setForm] = useState(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,6 +31,7 @@ function TrainerOnboarding() {
         const profile = await getMyTrainerProfile();
         if (profile) {
           setForm({
+            name: profile.name || user?.name || '',
             experienceYears: profile.experienceYears ?? 0,
             specialization: Array.isArray(profile.specialization) ? profile.specialization.join(', ') : '',
             certifications: Array.isArray(profile.certifications) ? profile.certifications.join(', ') : '',
@@ -79,7 +80,9 @@ function TrainerOnboarding() {
       await upsertMyTrainerProfile(payload);
       updateUser({ onboardingCompleted: true });
       setMessage('Trainer profile saved');
-      navigate('/home');
+      if (!isEmbedded) {
+        navigate('/home');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -89,9 +92,9 @@ function TrainerOnboarding() {
 
   return (
     <section>
-      <h1>Trainer Setup</h1>
+      {!isEmbedded && <h1>Trainer Setup</h1>}
       {loading ? <p>Loading profile...</p> : null}
-      <form onSubmit={onSubmit} className="auth-form" style={{ maxWidth: 520 }}>
+      <form onSubmit={onSubmit} className={isEmbedded ? "profile-form" : "auth-form"} style={isEmbedded ? {} : { maxWidth: 520 }}>
         <label>
           Name
           <input name="name" type="text" value={form.name} onChange={onChange} required />
@@ -120,15 +123,15 @@ function TrainerOnboarding() {
             required
           />
         </label>
-        <label>
+        <label className={isEmbedded ? "full-width" : ""}>
           Specialization (comma-separated)
           <input name="specialization" value={form.specialization} onChange={onChange} />
         </label>
-        <label>
+        <label className={isEmbedded ? "full-width" : ""}>
           Certifications (comma-separated)
           <input name="certifications" value={form.certifications} onChange={onChange} />
         </label>
-        <label>
+        <label className={isEmbedded ? "full-width" : ""}>
           Languages (comma-separated)
           <input name="languages" value={form.languages} onChange={onChange} />
         </label>
@@ -136,15 +139,17 @@ function TrainerOnboarding() {
           <input type="checkbox" name="isAvailable" checked={form.isAvailable} onChange={onChange} />
           Available for booking
         </label>
-        <label>
+        <label className={isEmbedded ? "full-width" : ""}>
           Bio
           <textarea name="bio" value={form.bio} onChange={onChange} rows={6} required />
         </label>
         {error ? <p className="auth-error">{error}</p> : null}
         {message ? <p className="success-text">{message}</p> : null}
-        <button className="primary-btn" type="submit" disabled={saving}>
-          {saving ? 'Saving...' : 'Save Profile'}
-        </button>
+        <div className={isEmbedded ? "submit-btn-wrapper" : ""}>
+          <button className="primary-btn" type="submit" disabled={saving}>
+            {saving ? 'Saving...' : (isEmbedded ? 'Update Information' : 'Save Profile')}
+          </button>
+        </div>
       </form>
     </section>
   );

@@ -17,7 +17,10 @@ async function getMyTrainerProfile({ user }) {
   if (role !== 'trainer') {
     throw new AppError('INVALID_ROLE', { status: 403, code: 'INVALID_ROLE' });
   }
-  return trainerRepository.getTrainerById(user.uid);
+  const profile = await trainerRepository.getTrainerById(user.uid);
+  const userRepository = require('../repositories/userRepository');
+  const userData = await userRepository.getUserById(user.uid);
+  return { ...profile, name: userData?.name || '' };
 }
 
 async function upsertMyTrainerProfile({ user, payload }) {

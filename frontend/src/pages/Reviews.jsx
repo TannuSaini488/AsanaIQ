@@ -149,35 +149,18 @@ function Reviews() {
 
       <div style={{ marginTop: 16, maxWidth: 520 }}>
         {isTrainer ? (
-          <p className="muted">Showing reviews for your trainer profile.</p>
-        ) : (
-          <label>
-            Trainer Reviews
-            <select
-              name="trainerId"
-              value={form.trainerId}
-              onChange={onChange}
-              disabled={loadingTrainerOptions}
+          <>
+            <p className="muted">Showing reviews for your trainer profile.</p>
+            <button
+              className="primary-btn"
+              type="button"
+              onClick={onLoadTrainerReviews}
+              disabled={loading || !myUserId}
             >
-              <option value="">
-                {loadingTrainerOptions ? 'Loading trainers...' : 'Select a trainer'}
-              </option>
-              {trainerOptions.map((trainer) => (
-                <option key={trainer.id} value={trainer.id}>
-                  {trainer.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <button
-          className="primary-btn"
-          type="button"
-          onClick={onLoadTrainerReviews}
-          disabled={loading || (isTrainer ? !myUserId : !form.trainerId)}
-        >
-          {loading ? 'Loading...' : isTrainer ? 'Refresh My Reviews' : 'Load Trainer Reviews'}
-        </button>
+              {loading ? 'Loading...' : 'Refresh My Reviews'}
+            </button>
+          </>
+        ) : null}
       </div>
 
       {error ? <p className="auth-error">{error}</p> : null}

@@ -1,0 +1,136 @@
+.dashboard-container {
+  padding: 40px 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.dashboard-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.dashboard-header p {
+  color: #64748b;
+  font-size: 16px;
+  margin: 0;
+}
+
+.dashboard-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 40px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 12px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 99px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.tab-btn:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.tab-btn.active {
+  color: #fff;
+  background: #0f172a;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.tab-content {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hide some headings from the embedded components for a cleaner look */
+.tab-content > section > h1 {
+  display: none;
+}
+
+/* Premium Profile Form embedded in Dashboard */
+.profile-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  background: #fff;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.profile-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  gap: 8px;
+}
+
+.profile-form input,
+.profile-form select {
+  padding: 12px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+}
+
+.profile-form input:focus,
+.profile-form select:focus {
+  outline: none;
+  border-color: #0f172a;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+}
+
+.profile-form .full-width {
+  grid-column: 1 / -1;
+}
+
+.profile-form .submit-btn-wrapper {
+  grid-column: 1 / -1;
+  text-align: right;
+  margin-top: 10px;
+}
+
+@media (max-width: 640px) {
+  .profile-form {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+}

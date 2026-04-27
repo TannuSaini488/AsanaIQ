@@ -10,8 +10,10 @@ import Landing from './pages/Landing';
 import ProtectedRoute from './components/ProtectedRoute';
 import Onboarding from './pages/Onboarding';
 import TrainerOnboarding from './pages/TrainerOnboarding';
+import TrainerDashboard from './pages/TrainerDashboard';
 import Progress from './pages/Progress';
 import Reviews from './pages/Reviews';
+import StudentDashboard from './pages/StudentDashboard';
 import { SocketProvider } from './contexts/SocketContext';
 import { CallProvider } from './contexts/CallContext';
 import GlobalCallUI from './components/GlobalCallUI';
@@ -67,10 +69,26 @@ function App() {
                 }
               />
               <Route
+                path="/trainer-dashboard"
+                element={
+                  <ProtectedRoute roles={['trainer']}>
+                    <TrainerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/progress"
                 element={
                   <ProtectedRoute roles={['student']}>
                     <Progress />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-journey"
+                element={
+                  <ProtectedRoute roles={['student']}>
+                    <StudentDashboard />
                   </ProtectedRoute>
                 }
               />

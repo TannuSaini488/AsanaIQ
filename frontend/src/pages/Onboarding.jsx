@@ -17,9 +17,9 @@ const DEFAULT_FORM = {
   onboardingCompleted: true,
 };
 
-function Onboarding() {
+function Onboarding({ isEmbedded = false }) {
   const navigate = useNavigate();
-  const { updateUser } = useAuth();
+  const { updateUser, user } = useAuth();
   const [form, setForm] = useState(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,6 +35,7 @@ function Onboarding() {
         const profile = await getMyStudentProfile();
         if (profile) {
           setForm({
+            name: profile.name || user?.name || '',
             age: profile.age ?? 25,
             gender: profile.gender || 'female',
             weight: profile.weight ?? 65,
@@ -91,7 +92,9 @@ function Onboarding() {
       await upsertMyStudentProfile(payload);
       updateUser({ onboardingCompleted: true });
       setMessage('Profile saved successfully');
-      navigate('/home');
+      if (!isEmbedded) {
+        navigate('/home');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -101,9 +104,9 @@ function Onboarding() {
 
   return (
     <section>
-      <h1>Student Onboarding</h1>
+      {!isEmbedded && <h1>Student Onboarding</h1>}
       {loading ? <p>Loading profile...</p> : null}
-      <form onSubmit={onSubmit} className="auth-form" style={{ maxWidth: 520 }}>
+      <form onSubmit={onSubmit} className={isEmbedded ? "profile-form" : "auth-form"} style={isEmbedded ? {} : { maxWidth: 520 }}>
         <label>
           Name
           <input name="name" type="text" value={form.name} onChange={onChange} required />
@@ -124,11 +127,11 @@ function Onboarding() {
           Height (cm)
           <input name="height" type="number" min="1" value={form.height} onChange={onChange} />
         </label>
-        <label>
+        <label className={isEmbedded ? "full-width" : ""}>
           Injuries (comma-separated)
           <input name="injuries" value={form.injuries} onChange={onChange} />
         </label>
-        <label>
+        <label className={isEmbedded ? "full-width" : ""}>
           Medical Conditions (comma-separated)
           <input name="medicalConditions" value={form.medicalConditions} onChange={onChange} />
         </label>
@@ -140,7 +143,7 @@ function Onboarding() {
             <option value="advanced">Advanced</option>
           </select>
         </label>
-        <label>
+        <label className={isEmbedded ? "full-width" : ""}>
           Primary Goal
           <input name="primaryGoal" value={form.primaryGoal} onChange={onChange} />
         </label>
@@ -148,20 +151,24 @@ function Onboarding() {
           Preferred Trainer Gender
           <input name="preferredTrainerGender" value={form.preferredTrainerGender} onChange={onChange} />
         </label>
-        <label>
-          <input
-            type="checkbox"
-            name="onboardingCompleted"
-            checked={form.onboardingCompleted}
-            onChange={onChange}
-          />
-          Onboarding Completed
-        </label>
+        {!isEmbedded && (
+          <label>
+            <input
+              type="checkbox"
+              name="onboardingCompleted"
+              checked={form.onboardingCompleted}
+              onChange={onChange}
+            />
+            Onboarding Completed
+          </label>
+        )}
         {error ? <p className="auth-error">{error}</p> : null}
         {message ? <p className="success-text">{message}</p> : null}
-        <button className="primary-btn" type="submit" disabled={saving}>
-          {saving ? 'Saving...' : 'Save Profile'}
-        </button>
+        <div className={isEmbedded ? "submit-btn-wrapper" : ""}>
+          <button className="primary-btn" type="submit" disabled={saving}>
+            {saving ? 'Saving...' : (isEmbedded ? 'Update Information' : 'Save Profile')}
+          </button>
+        </div>
       </form>
 
       {plan ? (

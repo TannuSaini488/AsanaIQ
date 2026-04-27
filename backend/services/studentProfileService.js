@@ -10,7 +10,10 @@ function assertStudent(user) {
 
 async function getMyProfile({ user }) {
   assertStudent(user);
-  return studentProfileRepository.getByUserId(user.uid);
+  const profile = await studentProfileRepository.getByUserId(user.uid);
+  const userRepository = require('../repositories/userRepository');
+  const userData = await userRepository.getUserById(user.uid);
+  return { ...profile, name: userData?.name || '' };
 }
 
 async function upsertMyProfile({ user, payload }) {

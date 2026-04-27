@@ -20,23 +20,15 @@ function Navbar() {
           {user?.role === 'trainer' ? 'Students' : 'Trainers'}
         </NavLink>
         {user?.role === 'student' && (
-          <NavLink to="/onboarding" className="nav-item">
-            Onboarding
+          <NavLink to="/my-journey" className="nav-item">
+            My Journey
           </NavLink>
         )}
         {user?.role === 'trainer' && (
-          <NavLink to="/trainer-onboarding" className="nav-item">
-            Trainer Setup
+          <NavLink to="/trainer-dashboard" className="nav-item">
+            My Dashboard
           </NavLink>
         )}
-        {user?.role === 'student' && (
-          <NavLink to="/progress" className="nav-item">
-            Progress
-          </NavLink>
-        )}
-        <NavLink to="/reviews" className="nav-item">
-          Reviews
-        </NavLink>
         {!token && (
           <>
             <NavLink to="/login" className="nav-item">
