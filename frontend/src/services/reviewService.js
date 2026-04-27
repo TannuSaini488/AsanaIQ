@@ -1,9 +1,9 @@
 import { requestWithLocalToken } from './apiClient';
 
-export async function createReview({ sessionId, rating, comment }) {
+export async function createReview({ trainerId, sessionId, rating, comment }) {
   const res = await requestWithLocalToken('/api/reviews', {
     method: 'POST',
-    body: { sessionId, rating, comment },
+    body: sessionId ? { sessionId, rating, comment } : { trainerId, rating, comment },
   });
   return res.data?.review;
 }

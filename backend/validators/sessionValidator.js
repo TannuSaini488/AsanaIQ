@@ -19,9 +19,23 @@ const trainerNotesSchema = z.object({
   trainerNotes: z.string().trim().min(1).max(4000),
 }).strict();
 
+const reviewableSessionsQuerySchema = z
+  .object({
+    trainerId: idSchema,
+  })
+  .strict();
+
+const callableSessionQuerySchema = z
+  .object({
+    peerId: idSchema,
+  })
+  .strict();
+
 module.exports = {
   bookSessionSchema,
   sessionIdParamsSchema,
   sessionStateActionSchema,
   trainerNotesSchema,
+  reviewableSessionsQuerySchema,
+  callableSessionQuerySchema,
 };

@@ -6,6 +6,8 @@ const {
   sessionIdParamsSchema,
   sessionStateActionSchema,
   trainerNotesSchema,
+  reviewableSessionsQuerySchema,
+  callableSessionQuerySchema,
 } = require('../validators/sessionValidator');
 
 async function book(req, res, next) {
@@ -63,4 +65,34 @@ async function upsertTrainerNotes(req, res, next) {
   }
 }
 
-module.exports = { book, updateState, upsertTrainerNotes };
+async function listReviewable(req, res, next) {
+  try {
+    const { trainerId } = reviewableSessionsQuerySchema.parse(req.query);
+    const sessions = await sessionService.listReviewableSessions({ user: req.user, trainerId });
+    res.success({ sessions }, 'Reviewable sessions loaded');
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getCallable(req, res, next) {
+  try {
+    const { peerId } = callableSessionQuerySchema.parse(req.query);
+    const result = await sessionService.getCallableSession({ user: req.user, peerId });
+    res.success({ session: result }, 'Callable session loaded');
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listMine(req, res, next) {
+  try {
+    const limit = req.query?.limit;
+    const sessions = await sessionService.listMySessions({ user: req.user, limit });
+    res.success({ sessions }, 'Sessions loaded');
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { book, updateState, upsertTrainerNotes, listReviewable, getCallable, listMine };

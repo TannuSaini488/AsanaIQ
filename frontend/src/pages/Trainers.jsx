@@ -132,8 +132,16 @@ function Trainers() {
     setBookingState({ loading: true, message: '', error: '' });
     try {
       const res = await bookSession({ trainerId, slotId });
-      setBookingState({ loading: false, message: 'Session booked!', error: '' });
       const sessionId = res?.sessionId || res?.session?.id || res?.id || '';
+      if (!sessionId) {
+        setBookingState({ loading: false, message: '', error: 'Booking succeeded but sessionId was missing.' });
+        return null;
+      }
+      setBookingState({
+        loading: false,
+        message: sessionId ? `Session booked! (${sessionId})` : 'Session booked!',
+        error: '',
+      });
       if (sessionId) {
         setSessionByTrainer((prev) => ({ ...prev, [trainerId]: sessionId }));
       }
@@ -232,7 +240,7 @@ function Trainers() {
     if (selectedSessionId) {
       params.set('sessionId', selectedSessionId);
     }
-    navigate(`/video-call?${params.toString()}`);
+    navigate(`/chat?${params.toString()}`);
   };
 
   return (

@@ -2,13 +2,25 @@ const { z } = require('zod');
 
 const idSchema = z.string().min(1).max(128);
 
-const createReviewSchema = z
-  .object({
-    sessionId: idSchema,
-    rating: z.number().min(0).max(5),
-    comment: z.string().trim().min(1).max(2000),
-  })
-  .strict();
+const ratingSchema = z.number().min(0).max(5);
+const commentSchema = z.string().trim().min(1).max(2000);
+
+const createReviewSchema = z.union([
+  z
+    .object({
+      sessionId: idSchema,
+      rating: ratingSchema,
+      comment: commentSchema,
+    })
+    .strict(),
+  z
+    .object({
+      trainerId: idSchema,
+      rating: ratingSchema,
+      comment: commentSchema,
+    })
+    .strict(),
+]);
 
 const trainerIdParamsSchema = z
   .object({

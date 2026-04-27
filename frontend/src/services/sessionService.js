@@ -23,3 +23,22 @@ export async function updateTrainerNotes(sessionId, trainerNotes) {
   });
   return res.data;
 }
+
+export async function fetchReviewableSessions(trainerId) {
+  const params = new URLSearchParams({ trainerId });
+  const res = await requestWithLocalToken(`/api/sessions/reviewable?${params.toString()}`);
+  return res.data?.sessions || [];
+}
+
+export async function fetchCallableSession(peerId) {
+  const params = new URLSearchParams({ peerId });
+  const res = await requestWithLocalToken(`/api/sessions/callable?${params.toString()}`);
+  return res.data?.session || null;
+}
+
+export async function fetchMySessions({ limit = 100 } = {}) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  const res = await requestWithLocalToken(`/api/sessions/mine?${params.toString()}`);
+  return res.data?.sessions || [];
+}

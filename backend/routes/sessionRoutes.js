@@ -6,6 +6,9 @@ const roleGuard = require('../middlewares/roleGuard');
 const router = express.Router();
 
 router.post('/book', verifyJwt, roleGuard('student'), sessionController.book);
+router.get('/callable', verifyJwt, roleGuard('student', 'trainer'), sessionController.getCallable);
+router.get('/mine', verifyJwt, roleGuard('student', 'trainer'), sessionController.listMine);
+router.get('/reviewable', verifyJwt, roleGuard('student'), sessionController.listReviewable);
 router.patch('/:id/state', verifyJwt, roleGuard('student', 'trainer'), sessionController.updateState);
 router.patch('/:id/notes', verifyJwt, roleGuard('trainer'), sessionController.upsertTrainerNotes);
 

@@ -6,6 +6,7 @@ import { extractUserIdFromToken } from '../utils/jwt';
 import { fetchMessages, sendMessage as sendMessageApi } from '../services/chatService';
 import { getMyConnections } from '../services/connectionService';
 import { useCall } from '../contexts/CallContext';
+import { fetchCallableSession, fetchMySessions } from '../services/sessionService';
 import './Chat.css';
 
 function statusLabel(status) {
@@ -43,16 +44,19 @@ function Chat() {
   const role = user?.role;
   const [searchParams] = useSearchParams();
   const requestedPeerId = searchParams.get('peerId') || '';
+  const requestedSessionId = searchParams.get('sessionId') || '';
 
   const { socket, connected } = useSocket();
 
   const [connections, setConnections] = useState([]);
   const [loadingConnections, setLoadingConnections] = useState(true);
   const [activeConnection, setActiveConnection] = useState(null);
+  const [callSessionId, setCallSessionId] = useState('');
   
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [sendError, setSendError] = useState('');
+  const [callError, setCallError] = useState('');
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   
   const { startCall } = useCall();
@@ -104,6 +108,34 @@ function Chat() {
       })
       .catch(() => setMessages([]));
   }, [activeConnection?.id, socket]);
+
+  useEffect(() => {
+    if (!activeConnection?.peerId) {
+      setCallSessionId('');
+      return;
+    }
+
+    if (requestedSessionId && requestedPeerId && activeConnection.peerId === requestedPeerId) {
+      setCallSessionId(requestedSessionId);
+      return;
+    }
+
+    fetchCallableSession(activeConnection.peerId)
+      .then(async (session) => {
+        if (session?.sessionId) {
+          setCallSessionId(session.sessionId);
+          return;
+        }
+        const sessions = await fetchMySessions({ limit: 200 });
+        const match = (sessions || []).find(
+          (s) =>
+            (s?.trainerId === activeConnection.peerId || s?.studentId === activeConnection.peerId) &&
+            (s?.status === 'confirmed' || s?.status === 'in_progress'),
+        );
+        setCallSessionId(match?.id || '');
+      })
+      .catch(() => setCallSessionId(''));
+  }, [activeConnection?.peerId, requestedPeerId, requestedSessionId]);
 
   useEffect(() => {
     if (!socket) return;
@@ -212,6 +244,37 @@ function Chat() {
     sendMessage(tsString, 'slot_accepted');
   };
 
+  const onStartVideoCall = async () => {
+    if (!activeConnection?.id || !activeConnection?.peerId) return;
+    setCallError('');
+    try {
+      let sessionId = callSessionId;
+      if (!sessionId) {
+        const callable = await fetchCallableSession(activeConnection.peerId);
+        sessionId = callable?.sessionId || '';
+        if (!sessionId) {
+          const sessions = await fetchMySessions({ limit: 200 });
+          const match = (sessions || []).find(
+            (s) =>
+              (s?.trainerId === activeConnection.peerId || s?.studentId === activeConnection.peerId) &&
+              (s?.status === 'confirmed' || s?.status === 'in_progress'),
+          );
+          sessionId = match?.id || '';
+        }
+        setCallSessionId(sessionId);
+      }
+
+      if (!sessionId) {
+        setCallError('No booked session found for calling. Please book a slot first.');
+        return;
+      }
+
+      startCall(activeConnection.id, activeConnection.peerId, activeConnection.peerName, sessionId);
+    } catch (err) {
+      setCallError(err.message || 'Unable to start video call.');
+    }
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
@@ -224,7 +287,7 @@ function Chat() {
     .filter(m => m.messageType === 'slot_accepted')
     .map(m => parseInt(m.content, 10));
   
-  const videoActive = isSlotActive(acceptedSlots);
+  const videoActive = Boolean(callSessionId);
 
   return (
     <div className="chat-shell">
@@ -306,18 +369,19 @@ function Chat() {
                 {videoActive ? (
                   <button 
                     className="chat-top-btn video active" 
-                    onClick={() => startCall(activeConnection.id, activeConnection.peerId, activeConnection.peerName)}
+                    onClick={onStartVideoCall}
                     title="Join Video Call"
                   >
                     🎥
                   </button>
                 ) : (
-                  <button className="chat-top-btn video disabled" title="Video call is only available during accepted slots">
+                  <button className="chat-top-btn video disabled" title="Book a session to enable video call" onClick={onStartVideoCall}>
                     🎥
                   </button>
                 )}
               </div>
             </div>
+            {callError ? <div className="send-error">{callError}</div> : null}
 
             {/* Messages area */}
             <div className="chat-messages">

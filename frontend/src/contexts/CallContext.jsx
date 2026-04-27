@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, useCallb
 import { useGlobalSocket } from './SocketContext';
 import useAuth from '../hooks/useAuth';
 import { extractUserIdFromToken } from '../utils/jwt';
+import { updateSessionState } from '../services/sessionService';
 
 const CallContext = createContext();
 
@@ -18,8 +19,8 @@ export function CallProvider({ children }) {
   const { socket } = useGlobalSocket();
 
   const [callState, setCallState] = useState('idle'); // 'idle' | 'ringing' | 'calling' | 'in-call'
-  const [incomingCallData, setIncomingCallData] = useState(null); // { senderId, connectionId, signal }
-  const [activeCall, setActiveCall] = useState(null); // { peerId, connectionId, peerName }
+  const [incomingCallData, setIncomingCallData] = useState(null); // { senderId, connectionId, sessionId, signal }
+  const [activeCall, setActiveCall] = useState(null); // { peerId, connectionId, sessionId, peerName }
 
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -97,6 +98,7 @@ export function CallProvider({ children }) {
           senderId: userId,
           receiverId: activeCallRef.current.peerId,
           connectionId: activeCallRef.current.connectionId,
+          sessionId: activeCallRef.current.sessionId,
           signal: e.candidate,
         });
       }
@@ -116,11 +118,11 @@ export function CallProvider({ children }) {
   useEffect(() => {
     if (!socket || !userId) return;
 
-    const handleCall = async ({ senderId, connectionId, signal }) => {
+    const handleCall = async ({ senderId, connectionId, sessionId, signal }) => {
       // Ignore if we are already in a call
       if (callState !== 'idle') return;
-      setIncomingCallData({ senderId, connectionId, signal });
-      setActiveCall({ peerId: senderId, connectionId, peerName: 'Trainer/Student' }); // Ideal: fetch name
+      setIncomingCallData({ senderId, connectionId, sessionId, signal });
+      setActiveCall({ peerId: senderId, connectionId, sessionId, peerName: 'Trainer/Student' }); // Ideal: fetch name
       setCallState('ringing');
     };
 
@@ -129,6 +131,12 @@ export function CallProvider({ children }) {
       try {
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(signal));
         setCallState('in-call');
+        const sessionId = activeCallRef.current?.sessionId;
+        if (sessionId) {
+          try {
+            await updateSessionState(sessionId, 'start');
+          } catch (_) {}
+        }
       } catch (err) {
         console.error('Answer err', err);
       }
@@ -154,9 +162,9 @@ export function CallProvider({ children }) {
     };
   }, [socket, userId, callState]);
 
-  const startCall = async (connectionId, peerId, peerName) => {
+  const startCall = async (connectionId, peerId, peerName, sessionId) => {
     if (!socket || !userId) return;
-    setActiveCall({ peerId, connectionId, peerName });
+    setActiveCall({ peerId, connectionId, sessionId, peerName });
     setCallState('calling');
     
     const stream = await ensureLocalMedia();
@@ -171,7 +179,7 @@ export function CallProvider({ children }) {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    socket.emit(SIGNAL.CALL, { senderId: userId, receiverId: peerId, connectionId, signal: offer });
+    socket.emit(SIGNAL.CALL, { senderId: userId, receiverId: peerId, connectionId, sessionId, signal: offer });
   };
 
   const answerCall = async () => {
@@ -195,13 +203,26 @@ export function CallProvider({ children }) {
       senderId: userId,
       receiverId: incomingCallData.senderId,
       connectionId: incomingCallData.connectionId,
+      sessionId: incomingCallData.sessionId,
       signal: answer,
     });
+
+    const sessionId = incomingCallData.sessionId;
+    if (sessionId) {
+      try {
+        await updateSessionState(sessionId, 'start');
+      } catch (_) {}
+    }
   };
 
-  const endCall = () => {
-    // Ideally we should emit an 'end_call' event so the peer UI closes, 
-    // but destroying the connection will also freeze their video.
+  const endCall = async () => {
+    const sessionId = activeCallRef.current?.sessionId;
+    const shouldComplete = callState === 'in-call' && sessionId;
+    if (shouldComplete) {
+      try {
+        await updateSessionState(sessionId, 'complete');
+      } catch (_) {}
+    }
     cleanupCall();
   };
 

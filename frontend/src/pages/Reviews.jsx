@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createReview, fetchTrainerReviews } from '../services/reviewService';
 import useAuth from '../hooks/useAuth';
 import { extractUserIdFromToken } from '../utils/jwt';
+import { getMyConnections } from '../services/connectionService';
 
 function Reviews() {
   const { token, user } = useAuth();
@@ -10,16 +11,37 @@ function Reviews() {
   const isStudent = role === 'student';
   const isTrainer = role === 'trainer';
 
-  const [form, setForm] = useState({ sessionId: '', trainerId: '', rating: 5, comment: '' });
+  const [form, setForm] = useState({ trainerId: '', rating: 5, comment: '' });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [trainerReviews, setTrainerReviews] = useState([]);
+  const [trainerOptions, setTrainerOptions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingTrainerOptions, setLoadingTrainerOptions] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
 
   const onChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const loadTrainerOptions = async () => {
+    setLoadingTrainerOptions(true);
+    setError('');
+    try {
+      const connections = await getMyConnections();
+      const accepted = (connections || [])
+        .filter((conn) => conn.status === 'accepted' && conn.peerId)
+        .map((conn) => ({
+          id: conn.peerId,
+          label: conn.peerName ? `${conn.peerName} (${conn.peerId})` : conn.peerId,
+        }));
+      setTrainerOptions(accepted);
+    } catch (err) {
+      setError(err.message || 'Failed to load trainers.');
+    } finally {
+      setLoadingTrainerOptions(false);
+    }
   };
 
   const onSubmit = async (e) => {
@@ -30,7 +52,7 @@ function Reviews() {
     setMessage('');
     try {
       await createReview({
-        sessionId: form.sessionId,
+        trainerId: form.trainerId,
         rating: Number(form.rating),
         comment: form.comment,
       });
@@ -65,6 +87,12 @@ function Reviews() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTrainer, myUserId]);
 
+  useEffect(() => {
+    if (!isStudent) return;
+    loadTrainerOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStudent]);
+
   const onLoadTrainerReviews = async () => {
     if (isTrainer) {
       await loadTrainerReviews(myUserId);
@@ -79,8 +107,23 @@ function Reviews() {
       {isStudent ? (
         <form className="auth-form" style={{ maxWidth: 520 }} onSubmit={onSubmit}>
           <label>
-            Session ID
-            <input name="sessionId" value={form.sessionId} onChange={onChange} required />
+            Trainer
+            <select
+              name="trainerId"
+              value={form.trainerId}
+              onChange={onChange}
+              required
+              disabled={loadingTrainerOptions}
+            >
+              <option value="">
+                {loadingTrainerOptions ? 'Loading trainers...' : 'Select a trainer'}
+              </option>
+              {trainerOptions.map((trainer) => (
+                <option key={trainer.id} value={trainer.id}>
+                  {trainer.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Rating
@@ -109,8 +152,22 @@ function Reviews() {
           <p className="muted">Showing reviews for your trainer profile.</p>
         ) : (
           <label>
-            Trainer ID
-            <input name="trainerId" value={form.trainerId} onChange={onChange} />
+            Trainer Reviews
+            <select
+              name="trainerId"
+              value={form.trainerId}
+              onChange={onChange}
+              disabled={loadingTrainerOptions}
+            >
+              <option value="">
+                {loadingTrainerOptions ? 'Loading trainers...' : 'Select a trainer'}
+              </option>
+              {trainerOptions.map((trainer) => (
+                <option key={trainer.id} value={trainer.id}>
+                  {trainer.label}
+                </option>
+              ))}
+            </select>
           </label>
         )}
         <button

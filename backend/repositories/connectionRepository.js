@@ -108,9 +108,22 @@ async function getConnectionById(connectionId) {
   return { id: snap.id, ...snap.data() };
 }
 
+async function getConnectionByStudentAndTrainer({ studentId, trainerId }) {
+  const snap = await firestore
+    .collection(CONNECTIONS_COLLECTION)
+    .where('studentId', '==', studentId)
+    .where('trainerId', '==', trainerId)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  const doc = snap.docs[0];
+  return { id: doc.id, ...doc.data() };
+}
+
 module.exports = {
   requestConnection,
   updateConnectionStatus,
   listConnectionsByUser,
   getConnectionById,
+  getConnectionByStudentAndTrainer,
 };

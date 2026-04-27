@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const connectionRegistry = require('../services/connectionRegistry');
 const connectionService = require('../services/connectionService');
+const sessionService = require('../services/sessionService');
 const admin = require('../config/firebaseAdmin');
 const userRepository = require('../repositories/userRepository');
 
@@ -85,31 +86,76 @@ function initSocket(httpServer) {
           }
         });
 
-        socket.on('call_user', async ({ senderId, receiverId, connectionId, signal }) => {
+        socket.on('call_user', async ({ senderId, receiverId, connectionId, sessionId, signal }) => {
           if (senderId !== userId) return;
           try {
             await connectionService.validateConnectionAccess({ connectionId, userId: senderId });
-            emitToUser(receiverId, 'call_user', { senderId, receiverId, connectionId, signal });
+            if (!sessionId) {
+              const err = new Error('Session required for calling');
+              err.code = 'SESSION_REQUIRED';
+              throw err;
+            }
+            const session = await sessionService.validateSessionAccess({ sessionId, userId: senderId });
+            const isOtherParticipant =
+              (session.studentId === senderId && session.trainerId === receiverId) ||
+              (session.trainerId === senderId && session.studentId === receiverId);
+            if (!isOtherParticipant) {
+              const err = new Error('Session participants mismatch');
+              err.code = 'SESSION_MISMATCH';
+              throw err;
+            }
+
+            emitToUser(receiverId, 'call_user', { senderId, receiverId, connectionId, sessionId, signal });
           } catch (err) {
             socket.emit('connection_error', { code: err.code, message: err.message });
           }
         });
 
-        socket.on('answer_call', async ({ senderId, receiverId, connectionId, signal }) => {
+        socket.on('answer_call', async ({ senderId, receiverId, connectionId, sessionId, signal }) => {
           if (senderId !== userId) return;
           try {
             await connectionService.validateConnectionAccess({ connectionId, userId: senderId });
-            emitToUser(receiverId, 'answer_call', { senderId, receiverId, connectionId, signal });
+            if (!sessionId) {
+              const err = new Error('Session required for calling');
+              err.code = 'SESSION_REQUIRED';
+              throw err;
+            }
+            const session = await sessionService.validateSessionAccess({ sessionId, userId: senderId });
+            const isOtherParticipant =
+              (session.studentId === senderId && session.trainerId === receiverId) ||
+              (session.trainerId === senderId && session.studentId === receiverId);
+            if (!isOtherParticipant) {
+              const err = new Error('Session participants mismatch');
+              err.code = 'SESSION_MISMATCH';
+              throw err;
+            }
+
+            emitToUser(receiverId, 'answer_call', { senderId, receiverId, connectionId, sessionId, signal });
           } catch (err) {
             socket.emit('connection_error', { code: err.code, message: err.message });
           }
         });
 
-        socket.on('ice_candidate', async ({ senderId, receiverId, connectionId, signal }) => {
+        socket.on('ice_candidate', async ({ senderId, receiverId, connectionId, sessionId, signal }) => {
           if (senderId !== userId) return;
           try {
             await connectionService.validateConnectionAccess({ connectionId, userId: senderId });
-            emitToUser(receiverId, 'ice_candidate', { senderId, receiverId, connectionId, signal });
+            if (!sessionId) {
+              const err = new Error('Session required for calling');
+              err.code = 'SESSION_REQUIRED';
+              throw err;
+            }
+            const session = await sessionService.validateSessionAccess({ sessionId, userId: senderId });
+            const isOtherParticipant =
+              (session.studentId === senderId && session.trainerId === receiverId) ||
+              (session.trainerId === senderId && session.studentId === receiverId);
+            if (!isOtherParticipant) {
+              const err = new Error('Session participants mismatch');
+              err.code = 'SESSION_MISMATCH';
+              throw err;
+            }
+
+            emitToUser(receiverId, 'ice_candidate', { senderId, receiverId, connectionId, sessionId, signal });
           } catch (err) {
             socket.emit('connection_error', { code: err.code, message: err.message });
           }

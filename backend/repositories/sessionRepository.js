@@ -78,6 +78,28 @@ async function listSessionsByStudentId(studentId, { limit = 100 } = {}) {
   }
 }
 
+async function listSessionsByTrainerId(trainerId, { limit = 100 } = {}) {
+  try {
+    const snap = await firestore
+      .collection(SESSIONS_COLLECTION)
+      .where('trainerId', '==', trainerId)
+      .orderBy('scheduledStart', 'desc')
+      .limit(limit)
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    if (!isMissingIndexError(err)) throw err;
+
+    const fallbackLimit = Math.min(Math.max(limit, 200), 500);
+    const snap = await firestore
+      .collection(SESSIONS_COLLECTION)
+      .where('trainerId', '==', trainerId)
+      .limit(fallbackLimit)
+      .get();
+    return sortByScheduledStartDesc(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))).slice(0, limit);
+  }
+}
+
 /**
  * Book a session by marking a trainer's availability slot as booked
  * and creating a session document atomically.
@@ -85,7 +107,7 @@ async function listSessionsByStudentId(studentId, { limit = 100 } = {}) {
 async function bookSession({ studentId, trainerId, slotId }) {
   const now = admin.firestore.FieldValue.serverTimestamp();
 
-  return firestore.runTransaction(async (tx) => {
+  const result = await firestore.runTransaction(async (tx) => {
     const slotRef = firestore
       .collection(TRAINER_PROFILES_COLLECTION)
       .doc(trainerId)
@@ -123,6 +145,13 @@ async function bookSession({ studentId, trainerId, slotId }) {
 
     return { sessionId: sessionRef.id, status: 'confirmed' };
   });
+
+  const created = await getSessionById(result.sessionId);
+  if (!created) {
+    throw new AppError('SESSION_CREATE_FAILED', { status: 500, code: 'SESSION_CREATE_FAILED' });
+  }
+
+  return result;
 }
 
 async function transitionSessionState({ sessionId, action }) {
@@ -192,6 +221,7 @@ module.exports = {
   bookSession,
   getSessionById,
   listSessionsByStudentId,
+  listSessionsByTrainerId,
   transitionSessionState,
   updateTrainerNotes,
   updateAiSummaryId,
