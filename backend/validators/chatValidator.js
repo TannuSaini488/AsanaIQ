@@ -12,7 +12,9 @@ const listMessagesQuerySchema = z.object({
 }).strict();
 
 const createMessageSchema = z.object({
-  messageType: z.enum(['text', 'ai', 'system', 'slot_proposal', 'slot_accepted']).default('text'),
+  messageType: z
+    .enum(['text', 'ai', 'system', 'slot_proposal', 'slot_accepted', 'slot_offer', 'slot_confirmed'])
+    .default('text'),
   content: z.string().trim().min(1).max(5000),
 }).strict();
 

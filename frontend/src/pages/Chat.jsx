@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSocket } from '../hooks/useSocket';
 import useAuth from '../hooks/useAuth';
@@ -6,7 +6,9 @@ import { extractUserIdFromToken } from '../utils/jwt';
 import { fetchMessages, sendMessage as sendMessageApi } from '../services/chatService';
 import { getMyConnections } from '../services/connectionService';
 import { useCall } from '../contexts/CallContext';
-import { fetchCallableSession, fetchMySessions } from '../services/sessionService';
+import { bookSession, fetchCallableSession, fetchMySessions } from '../services/sessionService';
+import { createMySlot, deleteMySlot, fetchMySlots } from '../services/slotService';
+import { formatSlotLabel } from '../utils/formatSlot';
 import './Chat.css';
 
 function statusLabel(status) {
@@ -38,6 +40,15 @@ function isSlotActive(slots) {
   });
 }
 
+function safeJsonParse(value) {
+  if (typeof value !== 'string') return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
 function Chat() {
   const { user, token } = useAuth();
   const userId = extractUserIdFromToken(token) || user?.uid || user?.id || user?.localId || '';
@@ -62,11 +73,18 @@ function Chat() {
   const { startCall } = useCall();
 
   // Slot Modal State
-  const [showSlotModal, setShowSlotModal] = useState(false);
-  const [slotDate, setSlotDate] = useState('');
-  const [slotTime, setSlotTime] = useState('');
+  const [showAvailability, setShowAvailability] = useState(false);
+  const [trainerSlots, setTrainerSlots] = useState([]);
+  const [trainerSlotsLoading, setTrainerSlotsLoading] = useState(false);
+  const [slotForm, setSlotForm] = useState({ date: '', startTime: '', endTime: '' });
+  const [slotFormState, setSlotFormState] = useState({ loading: false, message: '', error: '' });
+  const [bookingOfferState, setBookingOfferState] = useState({ loading: false, error: '' });
 
   const inputRef = useRef(null);
+
+  const isTrainer = role === 'trainer';
+  const peerId = activeConnection?.peerId || '';
+  const trainerIdForBooking = isTrainer ? userId : peerId;
 
   const loadConnections = useCallback(async () => {
     setLoadingConnections(true);
@@ -89,6 +107,8 @@ function Chat() {
 
   useEffect(() => {
     if (!activeConnection?.id) { setMessages([]); return; }
+    setBookingOfferState({ loading: false, error: '' });
+    setShowAvailability(false);
     fetchMessages(activeConnection.id, { limit: 50 })
       .then((res) => {
         const normalized = (res.messages || []).slice().reverse().map((m) => ({
@@ -136,6 +156,25 @@ function Chat() {
       })
       .catch(() => setCallSessionId(''));
   }, [activeConnection?.peerId, requestedPeerId, requestedSessionId]);
+
+  const loadMySlots = useCallback(async () => {
+    if (!isTrainer || !activeConnection?.id) return;
+    setTrainerSlotsLoading(true);
+    setSlotFormState({ loading: false, message: '', error: '' });
+    try {
+      const data = await fetchMySlots();
+      setTrainerSlots(data);
+    } catch (err) {
+      setSlotFormState({ loading: false, message: '', error: err.message });
+    } finally {
+      setTrainerSlotsLoading(false);
+    }
+  }, [activeConnection?.id, isTrainer]);
+
+  useEffect(() => {
+    if (!showAvailability) return;
+    loadMySlots();
+  }, [loadMySlots, showAvailability]);
 
   useEffect(() => {
     if (!socket) return;
@@ -233,15 +272,60 @@ function Chat() {
     inputRef.current?.focus();
   };
 
-  const proposeSlot = () => {
-    if (!slotDate || !slotTime) return;
-    const datetime = new Date(`${slotDate}T${slotTime}`).getTime();
-    sendMessage(datetime.toString(), 'slot_proposal');
-    setShowSlotModal(false);
+  const handleSlotInputChange = (e) => {
+    const { name, value } = e.target;
+    setSlotForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const acceptSlot = (tsString) => {
-    sendMessage(tsString, 'slot_accepted');
+  const handleCreateSlot = async (e) => {
+    e.preventDefault();
+    if (!slotForm.date || !slotForm.startTime || !slotForm.endTime) return;
+    setSlotFormState({ loading: true, message: '', error: '' });
+    try {
+      const created = await createMySlot(slotForm);
+      setTrainerSlots((prev) => [created, ...prev]);
+      setSlotForm({ date: '', startTime: '', endTime: '' });
+      setSlotFormState({ loading: false, message: 'Slot created.', error: '' });
+    } catch (err) {
+      setSlotFormState({ loading: false, message: '', error: err.message });
+    }
+  };
+
+  const handleDeleteSlot = async (slotId) => {
+    if (!slotId) return;
+    setSlotFormState({ loading: true, message: '', error: '' });
+    try {
+      await deleteMySlot(slotId);
+      setTrainerSlots((prev) => prev.filter((slot) => (slot.id || slot.slotId) !== slotId));
+      setSlotFormState({ loading: false, message: 'Slot deleted.', error: '' });
+    } catch (err) {
+      setSlotFormState({ loading: false, message: '', error: err.message });
+    }
+  };
+
+  const sendSlotOffer = async (slot) => {
+    const slotId = slot?.id || slot?.slotId;
+    if (!slotId) return;
+    const payload = {
+      slotId,
+      label: formatSlotLabel(slot),
+    };
+    await sendMessage(JSON.stringify(payload), 'slot_offer');
+  };
+
+  const confirmSlotOffer = async (slotId, label) => {
+    if (!slotId || isTrainer || !peerId) return;
+    setBookingOfferState({ loading: true, error: '' });
+    try {
+      const res = await bookSession({ trainerId: trainerIdForBooking, slotId });
+      const sessionId = res?.sessionId || res?.session?.id || res?.id || '';
+      if (sessionId) setCallSessionId(sessionId);
+      await sendMessage(JSON.stringify({ slotId, sessionId, label }), 'slot_confirmed');
+    } catch (err) {
+      setBookingOfferState({ loading: false, error: err.message || 'Unable to confirm slot.' });
+      return;
+    }
+    setBookingOfferState({ loading: false, error: '' });
   };
 
   const onStartVideoCall = async () => {
@@ -264,6 +348,19 @@ function Chat() {
         setCallSessionId(sessionId);
       }
 
+      // We only allow video call after a slot is confirmed in this chat.
+      const confirmedSessionId = confirmedSessionIdFromChat || '';
+      if (!confirmedSessionId) {
+        setCallError('Confirm a slot in chat to enable video call.');
+        return;
+      }
+
+      // Always prefer the session confirmed in this chat (avoids older sessions between same peers).
+      if (!sessionId || sessionId !== confirmedSessionId) {
+        sessionId = confirmedSessionId;
+        setCallSessionId(confirmedSessionId);
+      }
+
       if (!sessionId) {
         setCallError('No booked session found for calling. Please book a slot first.');
         return;
@@ -281,13 +378,21 @@ function Chat() {
 
   const peerOnline = activeConnection ? onlineUsers.has(activeConnection.peerId) : false;
   const canChat = activeConnection && activeConnection.status === 'accepted';
-
-  // Calculate accepted slots to see if video call is available
-  const acceptedSlots = messages
-    .filter(m => m.messageType === 'slot_accepted')
-    .map(m => parseInt(m.content, 10));
   
-  const videoActive = Boolean(callSessionId);
+  const confirmedSessionIdFromChat = useMemo(() => {
+    const lastConfirmed = [...messages].reverse().find((m) => m?.messageType === 'slot_confirmed');
+    const data = safeJsonParse(lastConfirmed?.content) || {};
+    return typeof data.sessionId === 'string' ? data.sessionId : '';
+  }, [messages]);
+
+  // Only enable video once the booking is confirmed in this chat.
+  const videoActive = Boolean(callSessionId) && Boolean(confirmedSessionIdFromChat);
+
+  useEffect(() => {
+    if (!confirmedSessionIdFromChat) return;
+    // Sync call session id for both parties once the student confirms a slot.
+    if (!callSessionId) setCallSessionId(confirmedSessionIdFromChat);
+  }, [callSessionId, confirmedSessionIdFromChat]);
 
   return (
     <div className="chat-shell">
@@ -363,7 +468,12 @@ function Chat() {
                 </span>
               </div>
               <div className="chat-header__actions">
-                <button className="chat-top-btn" onClick={() => setShowSlotModal(true)} title="Propose a Time Slot">
+                <button
+                  className="chat-top-btn"
+                  onClick={() => (isTrainer ? setShowAvailability((v) => !v) : null)}
+                  title={isTrainer ? 'Availability' : 'Trainer manages availability here'}
+                  disabled={!isTrainer}
+                >
                   📅
                 </button>
                 {videoActive ? (
@@ -375,16 +485,22 @@ function Chat() {
                     🎥
                   </button>
                 ) : (
-                  <button className="chat-top-btn video disabled" title="Book a session to enable video call" onClick={onStartVideoCall}>
+                  <button
+                    className="chat-top-btn video disabled"
+                    title="Book/confirm a slot to enable video call"
+                    disabled
+                  >
                     🎥
                   </button>
                 )}
               </div>
             </div>
             {callError ? <div className="send-error">{callError}</div> : null}
+            {bookingOfferState.error ? <div className="send-error">{bookingOfferState.error}</div> : null}
 
             {/* Messages area */}
-            <div className="chat-messages">
+            <div className="chat-content-row">
+              <div className="chat-messages">
               {!canChat && (
                 <div className="chat-locked">
                   {activeConnection.status === 'pending' ? (
@@ -411,32 +527,41 @@ function Chat() {
                 const isMe = m.senderId === userId;
                 const isRead = m.readBy?.includes(activeConnection.peerId);
                 
-                if (m.messageType === 'slot_proposal') {
-                  const proposedTime = new Date(parseInt(m.content, 10));
-                  const isAccepted = acceptedSlots.includes(parseInt(m.content, 10));
+                if (m.messageType === 'slot_offer') {
+                  const data = safeJsonParse(m.content) || {};
+                  const slotId = data.slotId || '';
+                  const label = data.label || slotId;
+                  const alreadyConfirmed = messages.some((x) => {
+                    if (x.messageType !== 'slot_confirmed') return false;
+                    const payload = safeJsonParse(x.content) || {};
+                    return payload.slotId === slotId;
+                  });
                   return (
                     <div key={m.id || idx} className={`msg-row ${isMe ? 'me' : 'them'}`}>
                       <div className={`msg-bubble slot-bubble ${isMe ? 'me' : 'them'}`}>
                         <div className="slot-icon">📅</div>
                         <div className="slot-info">
-                          <strong>{isMe ? 'You proposed a slot' : 'Proposed Slot'}</strong>
-                          <span>{proposedTime.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                          <strong>{isMe ? 'You offered a slot' : 'Slot offer'}</strong>
+                          <span>{label}</span>
                         </div>
-                        {!isMe && !isAccepted && (
-                          <button className="btn-accept-slot" onClick={() => acceptSlot(m.content)}>Accept</button>
+                        {!isMe && !alreadyConfirmed && !isTrainer && (
+                          <button className="btn-accept-slot" onClick={() => confirmSlotOffer(slotId, label)} disabled={bookingOfferState.loading}>
+                            {bookingOfferState.loading ? 'Confirmingâ€¦' : 'Confirm'}
+                          </button>
                         )}
-                        {isAccepted && <span className="slot-accepted-badge">✅ Accepted</span>}
+                        {alreadyConfirmed && <span className="slot-accepted-badge">✅ Confirmed</span>}
                       </div>
                     </div>
                   );
                 }
 
-                if (m.messageType === 'slot_accepted') {
-                  const acceptedTime = new Date(parseInt(m.content, 10));
+                if (m.messageType === 'slot_confirmed') {
+                  const data = safeJsonParse(m.content) || {};
+                  const label = data.label || data.slotId || 'slot';
                   return (
                     <div key={m.id || idx} className="msg-row system">
                       <div className="msg-bubble system">
-                        📅 Slot confirmed for {acceptedTime.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                        Booking confirmed for {label}
                       </div>
                     </div>
                   );
@@ -458,6 +583,80 @@ function Chat() {
                   </div>
                 );
               })}
+            </div>
+
+            {isTrainer && showAvailability && canChat && (
+              <aside className="chat-drawer" aria-label="Availability">
+                <div className="chat-drawer__header">
+                  <strong>Availability</strong>
+                  <button className="chat-top-btn" onClick={() => setShowAvailability(false)} title="Close">
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateSlot} className="chat-drawer__form">
+                  <label>
+                    Date
+                    <input type="date" name="date" value={slotForm.date} onChange={handleSlotInputChange} required />
+                  </label>
+                  <label>
+                    Start
+                    <input type="time" name="startTime" value={slotForm.startTime} onChange={handleSlotInputChange} required />
+                  </label>
+                  <label>
+                    End
+                    <input type="time" name="endTime" value={slotForm.endTime} onChange={handleSlotInputChange} required />
+                  </label>
+                  <button type="submit" className="btn-confirm" disabled={slotFormState.loading}>
+                    {slotFormState.loading ? 'Saving…' : 'Create Slot'}
+                  </button>
+                </form>
+
+                {slotFormState.message ? <div className="drawer-success">{slotFormState.message}</div> : null}
+                {slotFormState.error ? <div className="send-error">{slotFormState.error}</div> : null}
+
+                <div className="chat-drawer__list">
+                  {trainerSlotsLoading ? (
+                    <div className="drawer-muted">Loading slots…</div>
+                  ) : trainerSlots.length === 0 ? (
+                    <div className="drawer-muted">No slots yet. Create one above.</div>
+                  ) : (
+                    trainerSlots.map((slot) => {
+                      const slotId = slot.id || slot.slotId;
+                      const label = formatSlotLabel(slot);
+                      return (
+                        <div key={slotId} className="drawer-slot">
+                          <div className="drawer-slot__info">
+                            <div className="drawer-slot__title">{label}</div>
+                            <div className="drawer-slot__meta">{slot.isBooked ? 'Booked' : 'Available'}</div>
+                          </div>
+                          <div className="drawer-slot__actions">
+                            <button
+                              type="button"
+                              className="btn-confirm"
+                              onClick={() => sendSlotOffer(slot)}
+                              disabled={slot.isBooked}
+                              title={slot.isBooked ? 'Slot already booked' : 'Send this slot to the student'}
+                            >
+                              Send
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-cancel"
+                              onClick={() => handleDeleteSlot(slotId)}
+                              disabled={slot.isBooked || slotFormState.loading}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </aside>
+            )}
+
             </div>
 
             {/* Input bar */}
@@ -492,29 +691,6 @@ function Chat() {
               </div>
             )}
           </>
-        )}
-        
-        {/* Slot Proposal Modal */}
-        {showSlotModal && (
-          <div className="slot-modal-overlay" onClick={() => setShowSlotModal(false)}>
-            <div className="slot-modal-content" onClick={e => e.stopPropagation()}>
-              <h3>Propose a Time Slot</h3>
-              <div className="slot-modal-body">
-                <label>
-                  Date:
-                  <input type="date" value={slotDate} onChange={e => setSlotDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
-                </label>
-                <label>
-                  Time:
-                  <input type="time" value={slotTime} onChange={e => setSlotTime(e.target.value)} />
-                </label>
-              </div>
-              <div className="slot-modal-footer">
-                <button className="btn-cancel" onClick={() => setShowSlotModal(false)}>Cancel</button>
-                <button className="btn-confirm" onClick={proposeSlot} disabled={!slotDate || !slotTime}>Propose</button>
-              </div>
-            </div>
-          </div>
         )}
       </section>
     </div>

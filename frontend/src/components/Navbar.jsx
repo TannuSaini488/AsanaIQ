@@ -19,6 +19,11 @@ function Navbar() {
         <NavLink to="/trainers" className="nav-item">
           {user?.role === 'trainer' ? 'Students' : 'Trainers'}
         </NavLink>
+        {token && (
+          <NavLink to="/connections" className="nav-item">
+            Inbox
+          </NavLink>
+        )}
         {user?.role === 'student' && (
           <NavLink to="/my-journey" className="nav-item">
             My Journey

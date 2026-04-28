@@ -51,6 +51,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/connections"
+                element={
+                  <ProtectedRoute roles={['student', 'trainer']}>
+                    <Chat />
+                  </ProtectedRoute>
+                }
+              />
               {/* Note: /video-call route removed since video calls are now globally integrated */}
               <Route
                 path="/onboarding"
@@ -112,4 +120,3 @@ function App() {
 }
 
 export default App;
-

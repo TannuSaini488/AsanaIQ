@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchTrainers } from '../services/trainerService';
 import { matchBestTrainer } from '../services/aiService';
-import { createMySlot, deleteMySlot, fetchMySlots, fetchSlots } from '../services/slotService';
+import { fetchSlots } from '../services/slotService';
 import { bookSession } from '../services/sessionService';
 import { getMyConnections, requestConnection, updateConnectionStatus } from '../services/connectionService';
 import { formatSlotLabel } from '../utils/formatSlot';
@@ -15,7 +15,7 @@ function Trainers() {
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState({ maxPrice: '', minRating: '' });
+  const [searchQuery, setSearchQuery] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
   const [aiResult, setAiResult] = useState(null);
@@ -23,13 +23,8 @@ function Trainers() {
   const [bookingState, setBookingState] = useState({ loading: false, message: '', error: '' });
   const [slotsLoading, setSlotsLoading] = useState({});
   const [selectedTrainerId, setSelectedTrainerId] = useState('');
-  const [sessionByTrainer, setSessionByTrainer] = useState({});
   const [connections, setConnections] = useState([]);
   const [connectionActionLoading, setConnectionActionLoading] = useState(false);
-  const [trainerSlots, setTrainerSlots] = useState([]);
-  const [trainerSlotsLoading, setTrainerSlotsLoading] = useState(false);
-  const [slotForm, setSlotForm] = useState({ date: '', startTime: '', endTime: '' });
-  const [slotFormState, setSlotFormState] = useState({ loading: false, message: '', error: '' });
 
   const getTrainerId = (trainer) => trainer?.id || trainer?.userId || '';
 
@@ -53,32 +48,40 @@ function Trainers() {
     load();
   }, []);
 
-  useEffect(() => {
-    const loadMySlots = async () => {
-      if (isStudentView) return;
-      setTrainerSlotsLoading(true);
-      setSlotFormState({ loading: false, message: '', error: '' });
-      try {
-        const data = await fetchMySlots();
-        setTrainerSlots(data);
-      } catch (err) {
-        setSlotFormState({ loading: false, message: '', error: err.message });
-      } finally {
-        setTrainerSlotsLoading(false);
-      }
-    };
-    loadMySlots();
-  }, [isStudentView]);
+  const peerIdForConnection = (connection) => {
+    if (!connection) return '';
+    return isStudentView ? connection.trainerId : connection.studentId;
+  };
+
+  const getConnectionForPeer = (peerId) => {
+    if (!peerId) return null;
+    return connections.find((c) => peerIdForConnection(c) === peerId) || null;
+  };
+
+  const getPeerLabel = (peerId) => {
+    if (!peerId) return 'Unknown';
+    const match = trainers.find((t) => (t.id || t.userId) === peerId);
+    return match?.name || match?.email || peerId;
+  };
 
   const filtered = useMemo(() => {
+    const q = (searchQuery || '').trim().toLowerCase();
+    if (!q) return trainers;
     return trainers.filter((t) => {
-      const underPrice =
-        filters.maxPrice === '' || (typeof t.pricingPerSession === 'number' && t.pricingPerSession <= Number(filters.maxPrice));
-      const meetsRating =
-        filters.minRating === '' || (typeof t.ratingAverage === 'number' && t.ratingAverage >= Number(filters.minRating));
-      return underPrice && meetsRating;
+      const haystack = [
+        t.name,
+        t.email,
+        ...(t.specialization || []),
+        t.primaryGoal,
+        t.fitnessLevel,
+        ...(t.languages || []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
     });
-  }, [trainers, filters]);
+  }, [trainers, searchQuery]);
 
   useEffect(() => {
     if (!filtered.length) {
@@ -90,11 +93,6 @@ function Trainers() {
       setSelectedTrainerId(getTrainerId(filtered[0]));
     }
   }, [filtered, selectedTrainerId]);
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-  };
 
   const handleAiMatch = async () => {
     setAiLoading(true);
@@ -143,7 +141,7 @@ function Trainers() {
         error: '',
       });
       if (sessionId) {
-        setSessionByTrainer((prev) => ({ ...prev, [trainerId]: sessionId }));
+        // Session id can be retrieved on the Inbox page for video calls.
       }
       // mark slot as booked locally
       setSlotsByTrainer((prev) => ({
@@ -158,40 +156,8 @@ function Trainers() {
     }
   };
 
-  const handleSlotInputChange = (e) => {
-    const { name, value } = e.target;
-    setSlotForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCreateSlot = async (e) => {
-    e.preventDefault();
-    if (!slotForm.date || !slotForm.startTime || !slotForm.endTime) return;
-    setSlotFormState({ loading: true, message: '', error: '' });
-    try {
-      const created = await createMySlot(slotForm);
-      setTrainerSlots((prev) => [created, ...prev]);
-      setSlotForm({ date: '', startTime: '', endTime: '' });
-      setSlotFormState({ loading: false, message: 'Slot created.', error: '' });
-    } catch (err) {
-      setSlotFormState({ loading: false, message: '', error: err.message });
-    }
-  };
-
-  const handleDeleteSlot = async (slotId) => {
-    if (!slotId) return;
-    setSlotFormState({ loading: true, message: '', error: '' });
-    try {
-      await deleteMySlot(slotId);
-      setTrainerSlots((prev) => prev.filter((slot) => (slot.id || slot.slotId) !== slotId));
-      setSlotFormState({ loading: false, message: 'Slot deleted.', error: '' });
-    } catch (err) {
-      setSlotFormState({ loading: false, message: '', error: err.message });
-    }
-  };
-
   const selectedTrainer = filtered.find((trainer) => getTrainerId(trainer) === selectedTrainerId) || null;
   const selectedId = selectedTrainer ? getTrainerId(selectedTrainer) : '';
-  const selectedSessionId = sessionByTrainer[selectedId] || '';
 
   const activeConnection = connections.find(c => c.trainerId === selectedId || c.studentId === selectedId);
 
@@ -229,50 +195,33 @@ function Trainers() {
     }
   };
 
-  const openChat = () => {
-    if (!selectedId) return;
-    navigate(`/chat?peerId=${encodeURIComponent(selectedId)}`);
-  };
-
-  const openVideoCall = () => {
-    if (!selectedId) return;
-    const params = new URLSearchParams({ peerId: selectedId });
-    if (selectedSessionId) {
-      params.set('sessionId', selectedSessionId);
+  const { sentPending, receivedPending, acceptedConnections } = useMemo(() => {
+    const sent = [];
+    const received = [];
+    const accepted = [];
+    for (const conn of connections) {
+      if (!conn) continue;
+      if (conn.status === 'accepted') {
+        accepted.push(conn);
+        continue;
+      }
+      if (conn.status !== 'pending') continue;
+      const requesterId = conn.requesterId;
+      if (!requesterId) {
+        // Backward compatibility: treat missing requesterId as "sent" for student view.
+        (isStudentView ? sent : received).push(conn);
+      } else if (requesterId === user?.uid) {
+        sent.push(conn);
+      } else {
+        received.push(conn);
+      }
     }
-    navigate(`/chat?${params.toString()}`);
-  };
+    return { sentPending: sent, receivedPending: received, acceptedConnections: accepted };
+  }, [connections, isStudentView, user?.uid]);
 
   return (
     <div>
       <h1>{isStudentView ? 'Trainers' : 'Students'}</h1>
-      {isStudentView ? (
-        <div className="filter-row">
-          <label>
-            Max Price
-            <input
-              type="number"
-              name="maxPrice"
-              value={filters.maxPrice}
-              onChange={handleFilterChange}
-              placeholder="e.g. 50"
-            />
-          </label>
-          <label>
-            Min Rating
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="5"
-              name="minRating"
-              value={filters.minRating}
-              onChange={handleFilterChange}
-              placeholder="e.g. 4"
-            />
-          </label>
-        </div>
-      ) : null}
 
       {isStudentView ? (
         <div className="ai-row">
@@ -303,8 +252,135 @@ function Trainers() {
       {loading && <p>Loading {isStudentView ? 'trainers' : 'students'}...</p>}
       {error && <p className="auth-error">{error}</p>}
 
+      <div className="connections-board">
+        <div className="conn-card">
+          <div className="conn-card-title">Sent Requests</div>
+          <div className="conn-card-subtitle">{sentPending.length} pending</div>
+          <div className="conn-list">
+            {sentPending.length === 0 ? (
+              <div className="conn-empty">No pending requests.</div>
+            ) : (
+              sentPending.slice(0, 5).map((c) => {
+                const peerId = peerIdForConnection(c);
+                return (
+                  <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
+                    <div className="conn-item-main">
+                      <div className="conn-item-title">{getPeerLabel(peerId)}</div>
+                      <div className="conn-item-meta">
+                        <span className="status-pill status-pending">Pending</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedTrainerId(peerId);
+                      }}
+                    >
+                      View
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="conn-card">
+          <div className="conn-card-title">Received Requests</div>
+          <div className="conn-card-subtitle">{receivedPending.length} pending</div>
+          <div className="conn-list">
+            {receivedPending.length === 0 ? (
+              <div className="conn-empty">No incoming requests.</div>
+            ) : (
+              receivedPending.slice(0, 5).map((c) => {
+                const peerId = peerIdForConnection(c);
+                return (
+                  <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
+                    <div className="conn-item-main">
+                      <div className="conn-item-title">{getPeerLabel(peerId)}</div>
+                      <div className="conn-item-meta">
+                        <span className="status-pill status-pending">Pending</span>
+                      </div>
+                    </div>
+                    <div className="conn-actions">
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        onClick={() => handleConnectionResponse(c.id, 'accepted')}
+                        disabled={connectionActionLoading}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() => handleConnectionResponse(c.id, 'rejected')}
+                        disabled={connectionActionLoading}
+                        style={{ background: '#f87171', color: 'white', border: 'none' }}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="conn-card">
+          <div className="conn-card-title">Inbox</div>
+          <div className="conn-card-subtitle">{acceptedConnections.length} accepted</div>
+          <div className="conn-list">
+            {acceptedConnections.length === 0 ? (
+              <div className="conn-empty">No connections yet.</div>
+            ) : (
+              acceptedConnections.slice(0, 5).map((c) => {
+                const peerId = peerIdForConnection(c);
+                return (
+                  <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
+                    <div className="conn-item-main">
+                      <div className="conn-item-title">{getPeerLabel(peerId)}</div>
+                      <div className="conn-item-meta">
+                        <span className="status-pill status-accepted">Accepted</span>
+                      </div>
+                    </div>
+                    <div className="conn-actions">
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedTrainerId(peerId);
+                        }}
+                      >
+                        View
+                      </button>
+                      <button type="button" className="primary-btn" onClick={() => navigate('/connections')}>
+                        Open Inbox
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="trainers-layout">
         <div className="trainer-list">
+          <div className="trainer-list-toolbar">
+            <input
+              className="trainer-search"
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={isStudentView ? 'Search trainers by name, specialization…' : 'Search students by name, email…'}
+            />
+          </div>
           {!loading && !error && filtered.length === 0 ? (
             <div className="trainer-list-empty">
               {isStudentView ? 'No trainers available right now.' : 'No students available right now.'}
@@ -315,6 +391,7 @@ function Trainers() {
             filtered.map((t) => {
               const trainerId = getTrainerId(t);
               const isSelected = trainerId === selectedTrainerId;
+              const conn = getConnectionForPeer(trainerId);
               return (
                 <button
                   key={trainerId || t.email}
@@ -332,6 +409,15 @@ function Trainers() {
                     </div>
                   </div>
                   <div className="trainer-list-meta">
+                    {conn?.status ? (
+                      <span
+                        className={`status-pill ${
+                          conn.status === 'accepted' ? 'status-accepted' : conn.status === 'pending' ? 'status-pending' : 'status-muted'
+                        }`}
+                      >
+                        {conn.status}
+                      </span>
+                    ) : null}
                     <span className="pill">{isStudentView ? `Rating ${t.ratingAverage ?? 'N/A'}` : t.gender || 'Student'}</span>
                   </div>
                 </button>
@@ -386,11 +472,8 @@ function Trainers() {
                 )
               ) : activeConnection.status === 'accepted' ? (
                 <>
-                  <button type="button" className="primary-btn" onClick={openChat}>
-                    Chat
-                  </button>
-                  <button type="button" className="primary-btn" onClick={openVideoCall}>
-                    Video Call
+                  <button type="button" className="primary-btn" onClick={() => navigate('/connections')}>
+                    Chat / Video Call
                   </button>
                   {isStudentView ? (
                     <button
@@ -407,9 +490,6 @@ function Trainers() {
                 <p className="muted">Connection {activeConnection.status}</p>
               )}
             </div>
-            {isStudentView && !selectedSessionId && activeConnection?.status === 'accepted' ? (
-              <p className="muted">Book a slot first for auto-filled session in Video Call.</p>
-            ) : null}
             {isStudentView && slotsByTrainer[selectedId] && (
               <div className="slots-list">
                 {(slotsByTrainer[selectedId] || []).map((slot) => {
@@ -428,61 +508,11 @@ function Trainers() {
                 })}
               </div>
             )}
-            {!isStudentView ? (
-              <div style={{ marginTop: 12 }}>
-                <h4 style={{ margin: '8px 0' }}>Manage Availability</h4>
-                <form onSubmit={handleCreateSlot} className="filter-row">
-                  <label>
-                    Date
-                    <input type="date" name="date" value={slotForm.date} onChange={handleSlotInputChange} required />
-                  </label>
-                  <label>
-                    Start
-                    <input
-                      type="time"
-                      name="startTime"
-                      value={slotForm.startTime}
-                      onChange={handleSlotInputChange}
-                      required
-                    />
-                  </label>
-                  <label>
-                    End
-                    <input type="time" name="endTime" value={slotForm.endTime} onChange={handleSlotInputChange} required />
-                  </label>
-                  <button type="submit" className="primary-btn" disabled={slotFormState.loading}>
-                    {slotFormState.loading ? 'Saving...' : 'Create Slot'}
-                  </button>
-                </form>
-                {trainerSlotsLoading ? <p className="muted">Loading your slots...</p> : null}
-                {trainerSlots.length ? (
-                  <div className="slots-list">
-                    {trainerSlots.map((slot) => {
-                      const slotId = slot.id || slot.slotId;
-                      return (
-                        <button
-                          key={slotId}
-                          className="slot-btn"
-                          type="button"
-                          onClick={() => handleDeleteSlot(slotId)}
-                          disabled={slot.isBooked || slotFormState.loading}
-                        >
-                          {slot.isBooked ? `Booked: ${formatSlotLabel(slot)}` : `Delete: ${formatSlotLabel(slot)}`}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-                {!trainerSlotsLoading && trainerSlots.length === 0 ? <p className="muted">No slots created yet.</p> : null}
-              </div>
-            ) : null}
           </div>
         ) : null}
       </div>
       {bookingState.message && <p className="success-text">{bookingState.message}</p>}
       {bookingState.error && <p className="auth-error">{bookingState.error}</p>}
-      {slotFormState.message && <p className="success-text">{slotFormState.message}</p>}
-      {slotFormState.error && <p className="auth-error">{slotFormState.error}</p>}
     </div>
   );
 }

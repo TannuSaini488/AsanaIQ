@@ -209,6 +209,147 @@ section h1 {
   color: #15803d;
 }
 
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0 12px;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.page-header p {
+  margin: 4px 0 0;
+}
+
+.connections-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.conn-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.conn-card-title {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.conn-card-subtitle {
+  font-size: 13px;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.conn-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conn-empty {
+  font-size: 13px;
+  color: #64748b;
+  padding: 6px 0;
+}
+
+.conn-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.conn-item-main {
+  min-width: 0;
+}
+
+.conn-item-title {
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}
+
+.conn-item-meta {
+  margin-top: 4px;
+}
+
+.conn-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.trainer-list-toolbar {
+  padding: 10px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.trainer-search {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.trainer-search:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #0f172a;
+  margin-right: 8px;
+}
+
+.status-pill.status-pending {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.status-pill.status-accepted {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.status-pill.status-muted {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
 .trainers-layout {
   display: grid;
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
@@ -297,6 +438,10 @@ section h1 {
 }
 
 @media (max-width: 860px) {
+  .connections-board {
+    grid-template-columns: 1fr;
+  }
+
   .trainers-layout {
     grid-template-columns: 1fr;
   }
