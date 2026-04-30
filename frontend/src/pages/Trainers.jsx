@@ -330,44 +330,7 @@ function Trainers() {
           </div>
         </div>
 
-        <div className="conn-card">
-          <div className="conn-card-title">Inbox</div>
-          <div className="conn-card-subtitle">{acceptedConnections.length} accepted</div>
-          <div className="conn-list">
-            {acceptedConnections.length === 0 ? (
-              <div className="conn-empty">No connections yet.</div>
-            ) : (
-              acceptedConnections.slice(0, 5).map((c) => {
-                const peerId = peerIdForConnection(c);
-                return (
-                  <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
-                    <div className="conn-item-main">
-                      <div className="conn-item-title">{getPeerLabel(peerId)}</div>
-                      <div className="conn-item-meta">
-                        <span className="status-pill status-accepted">Accepted</span>
-                      </div>
-                    </div>
-                    <div className="conn-actions">
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setSelectedTrainerId(peerId);
-                        }}
-                      >
-                        View
-                      </button>
-                      <button type="button" className="primary-btn" onClick={() => navigate('/connections')}>
-                        Open Inbox
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+
       </div>
 
       <div className="trainers-layout">

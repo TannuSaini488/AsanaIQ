@@ -385,14 +385,21 @@ function Chat() {
     return typeof data.sessionId === 'string' ? data.sessionId : '';
   }, [messages]);
 
-  // Only enable video once the booking is confirmed in this chat.
-  const videoActive = Boolean(callSessionId) && Boolean(confirmedSessionIdFromChat);
+  // Only enable video if we have a verified callSessionId from the backend.
+  const videoActive = Boolean(callSessionId);
 
   useEffect(() => {
     if (!confirmedSessionIdFromChat) return;
-    // Sync call session id for both parties once the student confirms a slot.
-    if (!callSessionId) setCallSessionId(confirmedSessionIdFromChat);
-  }, [callSessionId, confirmedSessionIdFromChat]);
+    // When a slot is confirmed in chat, verify with backend that it's active
+    // before enabling the video call button (avoids enabling for old completed sessions).
+    fetchCallableSession(activeConnection?.peerId)
+      .then(async (session) => {
+        if (session?.sessionId) {
+          setCallSessionId(session.sessionId);
+        }
+      })
+      .catch(() => {});
+  }, [confirmedSessionIdFromChat, activeConnection?.peerId]);
 
   return (
     <div className="chat-shell">
@@ -468,31 +475,24 @@ function Chat() {
                 </span>
               </div>
               <div className="chat-header__actions">
-                <button
-                  className="chat-top-btn"
-                  onClick={() => (isTrainer ? setShowAvailability((v) => !v) : null)}
-                  title={isTrainer ? 'Availability' : 'Trainer manages availability here'}
-                  disabled={!isTrainer}
-                >
-                  📅
-                </button>
-                {videoActive ? (
-                  <button 
-                    className="chat-top-btn video active" 
-                    onClick={onStartVideoCall}
-                    title="Join Video Call"
-                  >
-                    🎥
-                  </button>
-                ) : (
+                {isTrainer && (
                   <button
-                    className="chat-top-btn video disabled"
-                    title="Book/confirm a slot to enable video call"
-                    disabled
+                    className="chat-top-btn"
+                    onClick={() => setShowAvailability((v) => !v)}
+                    title="Manage Availability"
                   >
-                    🎥
+                    📅
                   </button>
                 )}
+                 {videoActive ? (
+                   <button className="chat-top-btn video active" onClick={onStartVideoCall} title="Join Video Call">
+                     🎥
+                   </button>
+                 ) : (
+                   <button className="chat-top-btn video disabled" title="Book/confirm a slot to enable video call" disabled>
+                     🎥
+                   </button>
+                 )}
               </div>
             </div>
             {callError ? <div className="send-error">{callError}</div> : null}
