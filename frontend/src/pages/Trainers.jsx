@@ -7,10 +7,12 @@ import { bookSession } from '../services/sessionService';
 import { getMyConnections, requestConnection, updateConnectionStatus } from '../services/connectionService';
 import { formatSlotLabel } from '../utils/formatSlot';
 import useAuth from '../hooks/useAuth';
+import { extractUserIdFromToken } from '../utils/jwt';
 
 function Trainers() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const currentUserId = extractUserIdFromToken(token) || user?.uid || user?.id || user?.localId || '';
   const isStudentView = user?.role !== 'trainer';
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -167,7 +169,7 @@ function Trainers() {
     try {
       const res = await requestConnection(selectedId);
       // Determine studentId and trainerId based on role
-      const requesterId = user.uid;
+      const requesterId = currentUserId;
       const role = user.role;
       const connData = { 
         ...res, 
@@ -210,14 +212,14 @@ function Trainers() {
       if (!requesterId) {
         // Backward compatibility: treat missing requesterId as "sent" for student view.
         (isStudentView ? sent : received).push(conn);
-      } else if (requesterId === user?.uid) {
+      } else if (requesterId === currentUserId) {
         sent.push(conn);
       } else {
         received.push(conn);
       }
     }
     return { sentPending: sent, receivedPending: received, acceptedConnections: accepted };
-  }, [connections, isStudentView, user?.uid]);
+  }, [connections, isStudentView, currentUserId]);
 
   return (
     <div>
@@ -419,7 +421,7 @@ function Trainers() {
                   {connectionActionLoading ? 'Sending...' : 'Connect'}
                 </button>
               ) : activeConnection.status === 'pending' ? (
-                (activeConnection.requesterId === user.uid || (!activeConnection.requesterId && isStudentView)) ? (
+                (activeConnection.requesterId === currentUserId || (!activeConnection.requesterId && isStudentView)) ? (
                   <button type="button" className="primary-btn" disabled>
                     Request Pending...
                   </button>

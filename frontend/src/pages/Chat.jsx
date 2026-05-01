@@ -90,10 +90,21 @@ function Chat() {
     setLoadingConnections(true);
     try {
       const data = await getMyConnections();
-      setConnections(data);
+      
+      // Filter out pending connections that the current user requested
+      const filteredData = data.filter(c => {
+        if (c.status === 'accepted') return true;
+        if (c.status === 'pending') {
+          const reqId = c.requesterId || c.studentId; // fallback
+          if (reqId === userId) return false;
+        }
+        return true;
+      });
+
+      setConnections(filteredData);
       // Auto-select if peerId is in URL
       if (requestedPeerId) {
-        const found = data.find(c => c.peerId === requestedPeerId);
+        const found = filteredData.find(c => c.peerId === requestedPeerId);
         if (found) setActiveConnection(found);
       }
     } catch (err) {
@@ -101,7 +112,7 @@ function Chat() {
     } finally {
       setLoadingConnections(false);
     }
-  }, [requestedPeerId]);
+  }, [requestedPeerId, userId]);
 
   useEffect(() => { loadConnections(); }, [loadConnections]);
 
