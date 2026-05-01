@@ -3,6 +3,7 @@ const {
   aiPlanResponseSchema,
   aiSummaryResponseSchema,
   aiProgressResponseSchema,
+  aiChatResponseSchema,
 } = require('../validators/aiValidator');
 const AppError = require('../utils/appError');
 
@@ -507,4 +508,28 @@ async function requestProgress({ apiKey, sessions, reviews }) {
   return aiProgressResponseSchema.parse(parsed);
 }
 
-module.exports = { requestMatch, requestPlan, requestSummary, requestProgress };
+async function requestChat({ apiKey, message, history }) {
+  const context = (history || []).map(h => `${h.role === 'user' ? 'Student' : 'AI'}: ${h.content}`).join('\n');
+  
+  const promptParts = [
+    {
+      text:
+        'You are a professional, empathetic Yoga AI Assistant, guiding people toward a healthy lifestyle. ' +
+        'Answer the following yoga and lifestyle query concisely and safely. ' +
+        'Do not provide medical diagnoses. Focus on yoga poses, diet, mindfulness, and healthy routines. ' +
+        'Respond ONLY with JSON in the format: {"reply": "your response"}.'
+    },
+    { text: `Previous Context:\n${context}` },
+    { text: `Student: ${message}` }
+  ];
+
+  const parsed = await requestJson({
+    apiKey,
+    promptParts,
+    maxOutputTokens: 800,
+  });
+
+  return aiChatResponseSchema.parse(parsed);
+}
+
+module.exports = { requestMatch, requestPlan, requestSummary, requestProgress, requestChat };

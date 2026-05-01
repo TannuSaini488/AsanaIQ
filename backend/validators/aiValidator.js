@@ -75,6 +75,18 @@ const aiProgressResponseSchema = z.object({
   recommendation: z.string().min(1).max(2000),
 }).strict();
 
+const aiChatRequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  history: z.array(z.object({
+    role: z.enum(['user', 'ai']),
+    content: z.string().min(1).max(4000)
+  })).max(50).optional(),
+}).strict();
+
+const aiChatResponseSchema = z.object({
+  reply: z.string().min(1).max(4000),
+}).strict();
+
 module.exports = {
   matchRequestSchema,
   aiMatchResponseSchema,
@@ -84,4 +96,6 @@ module.exports = {
   aiSummaryResponseSchema,
   aiProgressRequestSchema,
   aiProgressResponseSchema,
+  aiChatRequestSchema,
+  aiChatResponseSchema,
 };

@@ -125,6 +125,21 @@ async function generateProgressFromStudentId({ studentId, apiKey }) {
   return generateProgress({ userId: studentId, sessions: sessionDigest, reviews: reviewDigest, apiKey });
 }
 
+async function generateChatResponse({ userId, message, history, apiKey }) {
+  const generated = await aiRepository.requestChat({ apiKey, message, history });
+  
+  // Optionally persist chat interaction to aiReports or just return it
+  // Since it's a transient chat, returning directly might be better, but we can persist for analytics.
+  await persistReport({
+    userId,
+    type: 'summary', // using summary or custom type
+    inputSnapshot: { message, historyLength: history?.length || 0 },
+    generatedContent: generated,
+  });
+
+  return generated;
+}
+
 module.exports = {
   matchTrainer,
   generatePlan,
@@ -132,4 +147,5 @@ module.exports = {
   generateProgress,
   generateSummaryForCompletedSession,
   generateProgressFromStudentId,
+  generateChatResponse,
 };

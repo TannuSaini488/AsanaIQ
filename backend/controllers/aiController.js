@@ -4,6 +4,7 @@ const {
   aiPlanRequestSchema,
   aiSummaryRequestSchema,
   aiProgressRequestSchema,
+  aiChatRequestSchema,
 } = require('../validators/aiValidator');
 const config = require('../config');
 
@@ -70,4 +71,19 @@ async function progress(req, res, next) {
   }
 }
 
-module.exports = { match, plan, summary, progress };
+async function chat(req, res, next) {
+  try {
+    const { message, history } = aiChatRequestSchema.parse(req.body);
+    const result = await aiService.generateChatResponse({
+      userId: req.user.uid,
+      message,
+      history,
+      apiKey: resolveApiKey(),
+    });
+    res.success(result, 'Chat response generated');
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { match, plan, summary, progress, chat };

@@ -26,3 +26,11 @@ export async function generateProgress(studentId) {
   });
   return res.data;
 }
+
+export async function chatWithAI(message, history) {
+  const res = await requestWithLocalToken('/api/ai/chat', {
+    method: 'POST',
+    body: { message, history },
+  });
+  return res.data;
+}

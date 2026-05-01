@@ -17,6 +17,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import { SocketProvider } from './contexts/SocketContext';
 import { CallProvider } from './contexts/CallContext';
 import GlobalCallUI from './components/GlobalCallUI';
+import AIChatbotWidget from './components/AIChatbotWidget';
 
 // Routes where the full Navbar should be hidden
 const NO_NAVBAR_ROUTES = ['/onboarding', '/trainer-onboarding'];
@@ -114,6 +115,7 @@ function App() {
           </main>
         </div>
         <GlobalCallUI />
+        <AIChatbotWidget />
       </CallProvider>
     </SocketProvider>
   );
