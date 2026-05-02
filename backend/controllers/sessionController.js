@@ -34,15 +34,7 @@ async function updateState(req, res, next) {
       user: req.user,
     });
     if (result.status === 'completed') {
-      try {
-        await aiService.generateSummaryForCompletedSession({
-          sessionId,
-          apiKey: config.geminiApiKey,
-        });
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('[session] auto summary failed', { sessionId, message: err?.message });
-      }
+      // AI summary generation removed as per user request
     }
     res.success(result, 'Session state updated');
   } catch (err) {

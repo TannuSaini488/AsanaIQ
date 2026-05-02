@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { fetchTrainers } from '../services/trainerService';
 import { matchBestTrainer } from '../services/aiService';
 import { fetchSlots } from '../services/slotService';
@@ -221,263 +222,363 @@ function Trainers() {
     return { sentPending: sent, receivedPending: received, acceptedConnections: accepted };
   }, [connections, isStudentView, currentUserId]);
 
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  };
+
   return (
-    <div>
-      <h1>{isStudentView ? 'Trainers' : 'Students'}</h1>
-
-      {isStudentView ? (
-        <div className="ai-row">
-          <button type="button" className="primary-btn" onClick={handleAiMatch} disabled={aiLoading || trainers.length === 0}>
-            {aiLoading ? 'Finding...' : 'Find Best Trainer (AI)'}
-          </button>
-          {aiError && <span className="auth-error" style={{ marginLeft: 8 }}>{aiError}</span>}
+    <div className="trainers-page">
+      <header className="premium-hero">
+        <div className="container">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="premium-title"
+          >
+            {isStudentView ? 'Find Your ' : 'Manage Your '}
+            <span className="gradient-text">{isStudentView ? 'Perfect Trainer' : 'Community'}</span>
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="premium-subtitle"
+          >
+            {isStudentView 
+              ? 'Connect with world-class instructors tailored to your journey.' 
+              : 'Empower your students with personalized guidance and analytics.'}
+          </motion.p>
         </div>
-      ) : null}
+      </header>
 
-      {isStudentView && aiResult && (
-        <div className="ai-card">
-          <div className="ai-card-header">
-            <h3>Recommended Trainer</h3>
-            <span className="pill">Score: {aiResult.matchScore?.toFixed?.(2) ?? aiResult.matchScore}</span>
-          </div>
-          <p><strong>Name:</strong> {recommendedTrainer?.name || aiResult.bestMatchTrainerId}</p>
-          <p><strong>Reasoning:</strong> {aiResult.reasoning}</p>
-          {recommendedTrainer && (
-            <p className="muted">
-              Price: {recommendedTrainer.pricingPerSession ? `$${recommendedTrainer.pricingPerSession}` : 'N/A'} · Rating:{' '}
-              {recommendedTrainer.ratingAverage ?? 'N/A'}
-            </p>
-          )}
-        </div>
-      )}
-
-      {loading && <p>Loading {isStudentView ? 'trainers' : 'students'}...</p>}
-      {error && <p className="auth-error">{error}</p>}
-
-      <div className="connections-board">
-        <div className="conn-card">
-          <div className="conn-card-title">Sent Requests</div>
-          <div className="conn-card-subtitle">{sentPending.length} pending</div>
-          <div className="conn-list">
-            {sentPending.length === 0 ? (
-              <div className="conn-empty">No pending requests.</div>
-            ) : (
-              sentPending.slice(0, 5).map((c) => {
-                const peerId = peerIdForConnection(c);
-                return (
-                  <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
-                    <div className="conn-item-main">
-                      <div className="conn-item-title">{getPeerLabel(peerId)}</div>
-                      <div className="conn-item-meta">
-                        <span className="status-pill status-pending">Pending</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="secondary-btn"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setSelectedTrainerId(peerId);
-                      }}
-                    >
-                      View
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="conn-card">
-          <div className="conn-card-title">Received Requests</div>
-          <div className="conn-card-subtitle">{receivedPending.length} pending</div>
-          <div className="conn-list">
-            {receivedPending.length === 0 ? (
-              <div className="conn-empty">No incoming requests.</div>
-            ) : (
-              receivedPending.slice(0, 5).map((c) => {
-                const peerId = peerIdForConnection(c);
-                return (
-                  <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
-                    <div className="conn-item-main">
-                      <div className="conn-item-title">{getPeerLabel(peerId)}</div>
-                      <div className="conn-item-meta">
-                        <span className="status-pill status-pending">Pending</span>
-                      </div>
-                    </div>
-                    <div className="conn-actions">
-                      <button
-                        type="button"
-                        className="primary-btn"
-                        onClick={() => handleConnectionResponse(c.id, 'accepted')}
-                        disabled={connectionActionLoading}
-                      >
-                        Accept
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        onClick={() => handleConnectionResponse(c.id, 'rejected')}
-                        disabled={connectionActionLoading}
-                        style={{ background: '#f87171', color: 'white', border: 'none' }}
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-
-      </div>
-
-      <div className="trainers-layout">
-        <div className="trainer-list">
-          <div className="trainer-list-toolbar">
-            <input
-              className="trainer-search"
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isStudentView ? 'Search trainers by name, specialization…' : 'Search students by name, email…'}
-            />
-          </div>
-          {!loading && !error && filtered.length === 0 ? (
-            <div className="trainer-list-empty">
-              {isStudentView ? 'No trainers available right now.' : 'No students available right now.'}
+      <div className="container" style={{ marginTop: '-40px', position: 'relative', zIndex: 10, paddingBottom: '100px' }}>
+        {isStudentView ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="ai-row glass-card"
+          >
+            <div className="ai-row-content">
+              <h3>Smart Trainer Match</h3>
+              <p>Let our AI find the best coach based on your profile and goals.</p>
             </div>
-          ) : null}
-          {!loading &&
-            !error &&
-            filtered.map((t) => {
-              const trainerId = getTrainerId(t);
-              const isSelected = trainerId === selectedTrainerId;
-              const conn = getConnectionForPeer(trainerId);
-              return (
-                <button
-                  key={trainerId || t.email}
-                  type="button"
-                  className={`trainer-list-item ${isSelected ? 'active' : ''}`}
-                  onClick={() => setSelectedTrainerId(trainerId)}
-                >
-                  <div className="trainer-avatar">{(t.name || 'T').trim().charAt(0).toUpperCase()}</div>
-                  <div className="trainer-list-content">
-                    <div className="trainer-list-title">{t.name || (isStudentView ? 'Unnamed Trainer' : 'Unnamed Student')}</div>
-                    <div className="trainer-list-subtitle">
-                      {isStudentView
-                        ? t.specialization?.join(', ') || 'General'
-                        : t.primaryGoal || t.fitnessLevel || t.email || 'Student'}
-                    </div>
-                  </div>
-                  <div className="trainer-list-meta">
-                    {conn?.status ? (
-                      <span
-                        className={`status-pill ${
-                          conn.status === 'accepted' ? 'status-accepted' : conn.status === 'pending' ? 'status-pending' : 'status-muted'
-                        }`}
-                      >
-                        {conn.status}
-                      </span>
-                    ) : null}
-                    <span className="pill">{isStudentView ? `Rating ${t.ratingAverage ?? 'N/A'}` : t.gender || 'Student'}</span>
-                  </div>
-                </button>
-              );
-            })}
-        </div>
+            <button type="button" className="primary-btn pulse-btn" onClick={handleAiMatch} disabled={aiLoading || trainers.length === 0}>
+              {aiLoading ? 'Analyzing...' : 'Find Best Match (AI)'}
+            </button>
+            {aiError && <span className="auth-error" style={{ marginLeft: 8 }}>{aiError}</span>}
+          </motion.div>
+        ) : null}
 
-        {selectedTrainer ? (
-          <div className="trainer-panel">
-            <div className="trainer-header">
-              <h3>{selectedTrainer.name || (isStudentView ? 'Unnamed Trainer' : 'Unnamed Student')}</h3>
-              <div className="pill">
-                {isStudentView
-                  ? selectedTrainer.specialization?.join(', ') || 'General'
-                  : selectedTrainer.primaryGoal || selectedTrainer.fitnessLevel || 'Student'}
-              </div>
+        {isStudentView && aiResult && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="ai-card premium-card highlighted"
+          >
+            <div className="ai-card-header">
+              <h3><span className="sparkle-icon">✨</span> Recommended Trainer</h3>
+              <span className="pill purple">Match Score: {aiResult.matchScore?.toFixed?.(2) ?? aiResult.matchScore}</span>
             </div>
-            {isStudentView ? (
-              <>
-                <p className="muted">Experience: {selectedTrainer.experienceYears ?? 'N/A'} yrs</p>
-                <p className="muted">Rating: {selectedTrainer.ratingAverage ?? 'N/A'}</p>
-                <p className="muted">
-                  Price: {selectedTrainer.pricingPerSession ? `$${selectedTrainer.pricingPerSession}` : 'N/A'}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="muted">Email: {selectedTrainer.email || 'N/A'}</p>
-                <p className="muted">Fitness Level: {selectedTrainer.fitnessLevel || 'N/A'}</p>
-                <p className="muted">Goal: {selectedTrainer.primaryGoal || 'N/A'}</p>
-              </>
-            )}
-            <div className="slot-actions">
-              {!activeConnection ? (
-                <button type="button" className="primary-btn" onClick={handleConnect} disabled={connectionActionLoading}>
-                  {connectionActionLoading ? 'Sending...' : 'Connect'}
-                </button>
-              ) : activeConnection.status === 'pending' ? (
-                (activeConnection.requesterId === currentUserId || (!activeConnection.requesterId && isStudentView)) ? (
-                  <button type="button" className="primary-btn" disabled>
-                    Request Pending...
-                  </button>
-                ) : (
-                  <>
-                    <button type="button" className="primary-btn" onClick={() => handleConnectionResponse(activeConnection.id, 'accepted')} disabled={connectionActionLoading}>
-                      Accept Request
-                    </button>
-                    <button type="button" className="secondary-btn" onClick={() => handleConnectionResponse(activeConnection.id, 'rejected')} disabled={connectionActionLoading} style={{ background: '#f87171', color: 'white', border: 'none' }}>
-                      Reject
-                    </button>
-                  </>
-                )
-              ) : activeConnection.status === 'accepted' ? (
-                <>
-                  <button type="button" className="primary-btn" onClick={() => navigate('/connections')}>
-                    Chat / Video Call
-                  </button>
-                  {isStudentView ? (
-                    <button
-                      type="button"
-                      className="primary-btn"
-                      onClick={() => loadSlots(selectedId)}
-                      disabled={slotsLoading[selectedId]}
-                    >
-                      {slotsLoading[selectedId] ? 'Loading...' : 'Show Slots'}
-                    </button>
-                  ) : null}
-                </>
-              ) : (
-                <p className="muted">Connection {activeConnection.status}</p>
+            <div className="ai-card-body">
+              <p><strong>Name:</strong> {recommendedTrainer?.name || aiResult.bestMatchTrainerId}</p>
+              <p><strong>Insight:</strong> {aiResult.reasoning}</p>
+              {recommendedTrainer && (
+                <div className="ai-card-meta">
+                  <span>Price: {recommendedTrainer.pricingPerSession ? `$${recommendedTrainer.pricingPerSession}` : 'N/A'}</span>
+                  <span>Rating: {recommendedTrainer.ratingAverage ?? 'N/A'} ⭐</span>
+                </div>
               )}
             </div>
-            {isStudentView && slotsByTrainer[selectedId] && (
-              <div className="slots-list">
-                {(slotsByTrainer[selectedId] || []).map((slot) => {
-                  const slotId = slot.id || slot.slotId;
-                  const label = formatSlotLabel(slot);
+          </motion.div>
+        )}
+
+        <motion.div 
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+          className="connections-board"
+        >
+          <motion.div variants={fadeInUp} className="conn-card glass-card">
+            <div className="conn-card-header">
+              <div className="conn-card-title">Pending Outreach</div>
+              <span className="count-pill">{sentPending.length}</span>
+            </div>
+            <div className="conn-list">
+              {sentPending.length === 0 ? (
+                <div className="conn-empty">No pending requests.</div>
+              ) : (
+                sentPending.slice(0, 5).map((c) => {
+                  const peerId = peerIdForConnection(c);
+                  return (
+                    <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
+                      <div className="conn-item-main">
+                        <div className="conn-item-title">{getPeerLabel(peerId)}</div>
+                        <span className="status-pill status-pending">Pending</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="text-btn"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedTrainerId(peerId);
+                        }}
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </motion.div>
+
+          <motion.div variants={fadeInUp} className="conn-card glass-card">
+            <div className="conn-card-header">
+              <div className="conn-card-title">Incoming Requests</div>
+              <span className="count-pill">{receivedPending.length}</span>
+            </div>
+            <div className="conn-list">
+              {receivedPending.length === 0 ? (
+                <div className="conn-empty">No incoming requests.</div>
+              ) : (
+                receivedPending.slice(0, 5).map((c) => {
+                  const peerId = peerIdForConnection(c);
+                  return (
+                    <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
+                      <div className="conn-item-main">
+                        <div className="conn-item-title">{getPeerLabel(peerId)}</div>
+                        <span className="status-pill status-pending">New</span>
+                      </div>
+                      <div className="conn-actions">
+                        <button
+                          type="button"
+                          className="primary-btn small"
+                          onClick={() => handleConnectionResponse(c.id, 'accepted')}
+                          disabled={connectionActionLoading}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          className="danger-btn small"
+                          onClick={() => handleConnectionResponse(c.id, 'rejected')}
+                          disabled={connectionActionLoading}
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+
+        <div className="trainers-layout">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="trainer-list glass-card"
+            style={{ backdropFilter: 'blur(8px)' }}
+          >
+            <div className="trainer-list-toolbar">
+              <div className="search-wrapper">
+                <input
+                  className="trainer-search"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={isStudentView ? 'Search by name or specialty...' : 'Search students...'}
+                />
+              </div>
+            </div>
+            <div className="scroll-area">
+              {!loading && !error && filtered.length === 0 ? (
+                <div className="trainer-list-empty">
+                  {isStudentView ? 'No trainers found.' : 'No students found.'}
+                </div>
+              ) : null}
+              {loading && <div className="trainer-list-empty">Loading...</div>}
+              {!loading &&
+                !error &&
+                filtered.map((t) => {
+                  const trainerId = getTrainerId(t);
+                  const isSelected = trainerId === selectedTrainerId;
+                  const conn = getConnectionForPeer(trainerId);
                   return (
                     <button
-                      key={slotId}
-                      className="slot-btn"
-                      onClick={() => handleBook(selectedId, slotId)}
-                      disabled={slot.isBooked || bookingState.loading}
+                      key={trainerId || t.email}
+                      type="button"
+                      className={`trainer-list-item ${isSelected ? 'active' : ''}`}
+                      onClick={() => setSelectedTrainerId(trainerId)}
                     >
-                      {slot.isBooked ? 'Booked' : bookingState.loading ? 'Booking...' : label}
+                      <div className="trainer-avatar">{(t.name || 'T').trim().charAt(0).toUpperCase()}</div>
+                      <div className="trainer-list-content">
+                        <div className="trainer-list-title">{t.name || 'User'}</div>
+                        <div className="trainer-list-subtitle">
+                          {isStudentView
+                            ? t.specialization?.join(', ') || 'General'
+                            : t.primaryGoal || t.fitnessLevel || 'Student'}
+                        </div>
+                      </div>
+                      <div className="trainer-list-meta">
+                        {conn?.status && (
+                          <span className={`status-pill status-${conn.status}`}>
+                            {conn.status}
+                          </span>
+                        )}
+                        {isStudentView && <span className="rating-mini">★ {t.ratingAverage ?? '0'}</span>}
+                      </div>
                     </button>
                   );
                 })}
+            </div>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="trainer-panel glass-card"
+            style={{ backdropFilter: 'blur(8px)' }}
+          >
+            {selectedTrainer ? (
+              <div className="panel-content">
+                <div className="panel-header">
+                  <div className="panel-avatar-large">
+                    {(selectedTrainer.name || 'T').trim().charAt(0).toUpperCase()}
+                  </div>
+                  <div className="panel-header-text">
+                    <h3>{selectedTrainer.name}</h3>
+                    <div className="pill purple">
+                      {isStudentView
+                        ? selectedTrainer.specialization?.join(', ') || 'General'
+                        : selectedTrainer.primaryGoal || 'Student'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="panel-stats">
+                  {isStudentView ? (
+                    <>
+                      <div className="stat-item">
+                        <label>Experience</label>
+                        <span>{selectedTrainer.experienceYears ?? 'N/A'} yrs</span>
+                      </div>
+                      <div className="stat-item">
+                        <label>Rating</label>
+                        <span>{selectedTrainer.ratingAverage ?? '0'} / 5</span>
+                      </div>
+                      <div className="stat-item">
+                        <label>Session Fee</label>
+                        <span>{selectedTrainer.pricingPerSession ? `$${selectedTrainer.pricingPerSession}` : 'N/A'}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="stat-item">
+                        <label>Fitness Level</label>
+                        <span>{selectedTrainer.fitnessLevel || 'N/A'}</span>
+                      </div>
+                      <div className="stat-item">
+                        <label>Primary Goal</label>
+                        <span>{selectedTrainer.primaryGoal || 'N/A'}</span>
+                      </div>
+                      <div className="stat-item">
+                        <label>Gender</label>
+                        <span>{selectedTrainer.gender || 'N/A'}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="panel-actions">
+                  {!activeConnection ? (
+                    <button type="button" className="primary-btn large" onClick={handleConnect} disabled={connectionActionLoading}>
+                      {connectionActionLoading ? 'Sending...' : 'Request Connection'}
+                    </button>
+                  ) : activeConnection.status === 'pending' ? (
+                    (activeConnection.requesterId === currentUserId || (!activeConnection.requesterId && isStudentView)) ? (
+                      <button type="button" className="primary-btn large" disabled>
+                        Connection Requested
+                      </button>
+                    ) : (
+                      <div className="dual-actions">
+                        <button type="button" className="primary-btn" onClick={() => handleConnectionResponse(activeConnection.id, 'accepted')} disabled={connectionActionLoading}>
+                          Accept
+                        </button>
+                        <button type="button" className="danger-btn" onClick={() => handleConnectionResponse(activeConnection.id, 'rejected')} disabled={connectionActionLoading}>
+                          Reject
+                        </button>
+                      </div>
+                    )
+                  ) : activeConnection.status === 'accepted' ? (
+                    <div className="dual-actions">
+                      <button type="button" className="primary-btn" onClick={() => navigate('/connections')}>
+                        Message
+                      </button>
+                      {isStudentView && (
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() => loadSlots(selectedId)}
+                          disabled={slotsLoading[selectedId]}
+                        >
+                          {slotsLoading[selectedId] ? 'Loading...' : 'Book Session'}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="status-notice">Connection is {activeConnection.status}</p>
+                  )}
+                </div>
+
+                {isStudentView && slotsByTrainer[selectedId] && (
+                  <div className="slots-container">
+                    <h4>Available Time Slots</h4>
+                    <div className="slots-grid">
+                      {(slotsByTrainer[selectedId] || []).length === 0 && <p className="muted">No slots available.</p>}
+                      {(slotsByTrainer[selectedId] || []).map((slot) => {
+                        const slotId = slot.id || slot.slotId;
+                        const label = formatSlotLabel(slot);
+                        return (
+                          <button
+                            key={slotId}
+                            className={`slot-chip ${slot.isBooked ? 'booked' : ''}`}
+                            onClick={() => handleBook(selectedId, slotId)}
+                            disabled={slot.isBooked || bookingState.loading}
+                          >
+                            {slot.isBooked ? 'Booked' : label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="panel-empty">
+                <div className="empty-icon">🧘</div>
+                <p>Select a {isStudentView ? 'trainer' : 'student'} to view details</p>
               </div>
             )}
-          </div>
-        ) : null}
+          </motion.div>
+        </div>
+        {bookingState.message && <p className="success-toast">{bookingState.message}</p>}
+        {bookingState.error && <p className="error-toast">{bookingState.error}</p>}
       </div>
-      {bookingState.message && <p className="success-text">{bookingState.message}</p>}
-      {bookingState.error && <p className="auth-error">{bookingState.error}</p>}
     </div>
   );
 }

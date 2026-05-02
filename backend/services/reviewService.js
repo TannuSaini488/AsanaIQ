@@ -2,6 +2,7 @@ const AppError = require('../utils/appError');
 const reviewRepository = require('../repositories/reviewRepository');
 const sessionRepository = require('../repositories/sessionRepository');
 const connectionRepository = require('../repositories/connectionRepository');
+const userRepository = require('../repositories/userRepository');
 
 async function createReview({ user, payload }) {
   const role = user?.role || user?.customClaims?.role;
@@ -72,7 +73,25 @@ async function createReview({ user, payload }) {
 }
 
 async function listTrainerReviews(trainerId) {
-  return reviewRepository.listByTrainerId(trainerId);
+  const reviews = await reviewRepository.listByTrainerId(trainerId);
+  const studentIds = [...new Set(reviews.map((r) => r.studentId).filter(Boolean))];
+
+  const studentNames = {};
+  await Promise.all(
+    studentIds.map(async (id) => {
+      try {
+        const user = await userRepository.getUserById(id);
+        if (user) studentNames[id] = user.name || 'Student';
+      } catch (err) {
+        // ignore
+      }
+    })
+  );
+
+  return reviews.map((r) => ({
+    ...r,
+    studentName: studentNames[r.studentId] || 'Unknown Student',
+  }));
 }
 
 module.exports = {

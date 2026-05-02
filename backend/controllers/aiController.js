@@ -86,4 +86,14 @@ async function chat(req, res, next) {
   }
 }
 
-module.exports = { match, plan, summary, progress, chat };
+async function getSummary(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    const result = await aiService.getSummaryForSession(sessionId);
+    res.success({ summary: result }, 'Session summary fetched');
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { match, plan, summary, progress, chat, getSummary };

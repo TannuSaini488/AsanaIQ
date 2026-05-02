@@ -122,12 +122,21 @@ function Chat() {
     setShowAvailability(false);
     fetchMessages(activeConnection.id, { limit: 50 })
       .then((res) => {
+        const safeGetTime = (val) => {
+          if (!val) return Date.now();
+          if (typeof val === 'number') return val;
+          if (val._seconds) return val._seconds * 1000;
+          if (val.toDate) return val.toDate().getTime();
+          const d = new Date(val);
+          return Number.isNaN(d.getTime()) ? Date.now() : d.getTime();
+        };
+
         const normalized = (res.messages || []).slice().reverse().map((m) => ({
           id: m.id,
           senderId: m.senderId,
           content: m.content,
           messageType: m.messageType || 'text',
-          ts: m.timestamp?.toDate ? m.timestamp.toDate().getTime() : m.timestamp,
+          ts: safeGetTime(m.timestamp),
           readBy: m.readBy || [],
         }));
         setMessages(normalized);
@@ -466,9 +475,9 @@ function Chat() {
       <section className="chat-main">
         {!activeConnection ? (
           <div className="chat-main__empty">
-            <div className="chat-empty-icon">💬</div>
-            <h3>WhatsApp Web clone</h3>
-            <p>Select a chat to start messaging</p>
+            <div className="chat-empty-icon">🧘</div>
+            <h3>AsanaIQ Inbox</h3>
+            <p>Select a conversation to start messaging</p>
           </div>
         ) : (
           <>

@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { chatWithAI } from '../services/aiService';
-import { useAuth } from '../context/AuthContext';
+import useAuth from '../hooks/useAuth';
 
 const AIChatbotWidget = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'ai', content: 'Hi there! I am your AI Yoga & Wellness Guide. How can I help you on your journey today?' }
@@ -19,8 +21,11 @@ const AIChatbotWidget = () => {
     }
   }, [messages, isOpen]);
 
-  // If no user is logged in, hide widget (or allow it based on your auth rules)
+  // If no user is logged in, hide widget
   if (!user) return null;
+  
+  // Hide on inbox/chat pages
+  if (location.pathname === '/connections' || location.pathname === '/chat') return null;
 
   const toggleWidget = () => setIsOpen(!isOpen);
 

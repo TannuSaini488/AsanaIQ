@@ -7,7 +7,6 @@ const router = express.Router();
 
 router.post('/match', verifyJwt, roleGuard('student'), aiController.match);
 router.post('/plan', verifyJwt, roleGuard('student'), aiController.plan);
-router.post('/summary', verifyJwt, roleGuard('student', 'trainer'), aiController.summary);
 router.post('/progress', verifyJwt, roleGuard('student'), aiController.progress);
 router.post('/chat', verifyJwt, aiController.chat);
 

@@ -363,7 +363,7 @@ async function requestOpenRouterJson({ apiKey, promptParts, maxOutputTokens = 70
       if (isOpenRouterModelUnavailable({ status: statusCode, message: errorMessage })) {
         throw new AppError(
           `OpenRouter model unavailable (${model}). ${errorMessage}. ` +
-            'Set OPENROUTER_MODEL to a valid model id, or use openrouter/auto.',
+          'Set OPENROUTER_MODEL to a valid model id, or use openrouter/auto.',
           { status: statusCode, code: 'OPENROUTER_MODEL_UNAVAILABLE', expose: true },
         );
       }
@@ -469,6 +469,8 @@ async function requestSummary({ apiKey, sessionId, trainerNotes, chatTranscript 
           '"next_week_focus":["string"],"motivational_note":"string"}. No diagnosis.',
       },
       { text: `Session ID: ${sessionId}` },
+      { text: `Session Date/Time: ${sessionDate || 'Unknown'}` },
+      { text: `Trainer Name: ${trainerName || 'Trainer'}` },
       { text: `Trainer notes: ${trainerNotes || ''}` },
       { text: `Chat transcript: ${JSON.stringify(chatTranscript || [])}` },
     ],
@@ -510,7 +512,7 @@ async function requestProgress({ apiKey, sessions, reviews }) {
 
 async function requestChat({ apiKey, message, history }) {
   const context = (history || []).map(h => `${h.role === 'user' ? 'Student' : 'AI'}: ${h.content}`).join('\n');
-  
+
   const promptParts = [
     {
       text:

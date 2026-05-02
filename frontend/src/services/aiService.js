@@ -34,3 +34,8 @@ export async function chatWithAI(message, history) {
   });
   return res.data;
 }
+
+export async function fetchSessionSummary(sessionId) {
+  const res = await requestWithLocalToken(`/api/ai/summary/${sessionId}`);
+  return res.data?.summary;
+}

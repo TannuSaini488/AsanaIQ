@@ -41,38 +41,60 @@ function Register() {
   };
 
   return (
-    <div className="auth-card">
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit} className="auth-form">
-        <label>
-          Email
-          <input type="email" name="email" value={form.email} onChange={handleChange} required />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <label>
-          Role
-          <select name="role" value={form.role} onChange={handleChange}>
-            <option value="student">Student</option>
-            <option value="trainer">Trainer</option>
-          </select>
-        </label>
-        {error && <p className="auth-error">{error}</p>}
-        <button type="submit" disabled={loading || !form.email || !form.password}>
-          {loading ? 'Creating account...' : 'Register'}
-        </button>
-      </form>
-      <p className="auth-note">
-        Already have an account? <Link to="/login">Login</Link>
-      </p>
+    <div className="premium-auth-page">
+      <div className="auth-glow-bg"></div>
+      <div className="glass-card auth-premium-card">
+        <div className="auth-header">
+          <h2 className="premium-title">Join AsanaIQ</h2>
+          <p className="premium-subtitle">Start your personalized yoga journey today</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="premium-form">
+          <div className="input-group">
+            <label>Email Address</label>
+            <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="hello@asanaiq.com" required className="premium-input" />
+          </div>
+          <div className="input-group">
+            <label>Password</label>
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              required
+              className="premium-input"
+            />
+          </div>
+          
+          <div className="role-selector">
+            <label>I want to join as a:</label>
+            <div className="role-options">
+              <label className={`role-option ${form.role === 'student' ? 'selected' : ''}`}>
+                <input type="radio" name="role" value="student" checked={form.role === 'student'} onChange={handleChange} />
+                <span className="role-icon">🧘</span>
+                <span className="role-text">Student</span>
+              </label>
+              <label className={`role-option ${form.role === 'trainer' ? 'selected' : ''}`}>
+                <input type="radio" name="role" value="trainer" checked={form.role === 'trainer'} onChange={handleChange} />
+                <span className="role-icon">🧑‍🏫</span>
+                <span className="role-text">Trainer</span>
+              </label>
+            </div>
+          </div>
+          
+          {error && <div className="premium-error">{error}</div>}
+          <button type="submit" className="primary-btn large premium-submit-btn" disabled={loading || !form.email || !form.password}>
+            {loading ? 'Creating account...' : 'Create Account'}
+          </button>
+        </form>
+        
+        <div className="auth-footer">
+          <p className="muted">
+            Already have an account? <Link to="/login" className="gradient-text">Sign in</Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

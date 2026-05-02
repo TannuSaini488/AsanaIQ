@@ -34,7 +34,7 @@ function Reviews() {
         .filter((conn) => conn.status === 'accepted' && conn.peerId)
         .map((conn) => ({
           id: conn.peerId,
-          label: conn.peerName ? `${conn.peerName} (${conn.peerId})` : conn.peerId,
+          label: conn.peerName || conn.peerId,
         }));
       setTrainerOptions(accepted);
     } catch (err) {
@@ -105,46 +105,62 @@ function Reviews() {
     <section>
       <h1>Reviews</h1>
       {isStudent ? (
-        <form className="auth-form" style={{ maxWidth: 520 }} onSubmit={onSubmit}>
-          <label>
-            Trainer
-            <select
-              name="trainerId"
-              value={form.trainerId}
-              onChange={onChange}
-              required
-              disabled={loadingTrainerOptions}
-            >
-              <option value="">
-                {loadingTrainerOptions ? 'Loading trainers...' : 'Select a trainer'}
-              </option>
-              {trainerOptions.map((trainer) => (
-                <option key={trainer.id} value={trainer.id}>
-                  {trainer.label}
+        <div className="review-section" style={{ marginBottom: '40px' }}>
+          <div style={{ marginBottom: '24px' }}>
+             <h3 style={{ fontSize: '20px', margin: '0 0 8px 0', color: '#1C1917' }}>Leave a Review</h3>
+             <p className="muted" style={{ margin: 0 }}>Share your experience with your trainer.</p>
+          </div>
+          <form className="profile-form" onSubmit={onSubmit}>
+            <label>
+              Trainer
+              <select
+                name="trainerId"
+                value={form.trainerId}
+                onChange={onChange}
+                required
+                disabled={loadingTrainerOptions}
+              >
+                <option value="">
+                  {loadingTrainerOptions ? 'Loading trainers...' : 'Select a trainer'}
                 </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Rating
-            <input
-              name="rating"
-              type="number"
-              min="0"
-              max="5"
-              step="0.1"
-              value={form.rating}
-              onChange={onChange}
-            />
-          </label>
-          <label>
-            Comment
-            <input name="comment" value={form.comment} onChange={onChange} required />
-          </label>
-          <button className="primary-btn" type="submit" disabled={loading}>
-            {loading ? 'Submitting...' : 'Submit Review'}
-          </button>
-        </form>
+                {trainerOptions.map((trainer) => (
+                  <option key={trainer.id} value={trainer.id}>
+                    {trainer.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Rating (0-5)
+              <input
+                name="rating"
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={form.rating}
+                onChange={onChange}
+                required
+              />
+            </label>
+            <label className="full-width">
+              Comment
+              <textarea 
+                name="comment" 
+                value={form.comment} 
+                onChange={onChange} 
+                required 
+                rows="4"
+                placeholder="How was your session?"
+              ></textarea>
+            </label>
+            <div className="submit-btn-wrapper">
+              <button className="primary-btn" type="submit" disabled={loading || !form.trainerId || !form.comment}>
+                {loading ? 'Submitting...' : 'Submit Review'}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
 
       <div style={{ marginTop: 16, maxWidth: 520 }}>
@@ -174,7 +190,13 @@ function Reviews() {
                 <strong>Rating:</strong> {review.rating}
               </p>
               <p>{review.comment}</p>
-              <p className="muted">Session: {review.sessionId}</p>
+              {isTrainer ? (
+                <p className="muted" style={{ marginTop: '8px' }}>
+                  Student: <strong>{review.studentName || 'Unknown'}</strong>
+                </p>
+              ) : (
+                <p className="muted" style={{ marginTop: '8px' }}>Session: {review.sessionId}</p>
+              )}
             </div>
           ))}
         </div>

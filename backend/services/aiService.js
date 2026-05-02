@@ -49,10 +49,11 @@ async function generatePlan({ userId, studentProfile, apiKey }) {
   return { ...generated, reportId: report.reportId };
 }
 
-async function generateSessionSummary({ userId, sessionId, trainerNotes, chatTranscript, apiKey }) {
+async function generateSessionSummary({ userId, sessionId, sessionDate, trainerName, trainerNotes, chatTranscript, apiKey }) {
   const generated = await aiRepository.requestSummary({
     apiKey,
-    sessionId,
+    sessionDate,
+    trainerName,
     trainerNotes,
     chatTranscript,
   });
@@ -86,16 +87,34 @@ async function generateSummaryForCompletedSession({ sessionId, apiKey }) {
   if (!session || session.status !== 'completed') {
     return null;
   }
+  const userRepository = require('../repositories/userRepository');
+  const trainer = await userRepository.getUserById(session.trainerId).catch(() => null);
+  
+  const toIso = (v) => {
+    if (!v) return 'Unknown';
+    if (v instanceof Date) return v.toISOString();
+    if (v.toDate) return v.toDate().toISOString();
+    return new Date(v).toISOString();
+  };
+
   const transcript = await chatRepository.getTranscriptBySessionId(sessionId);
+
   const summary = await generateSessionSummary({
     userId: session.studentId,
     sessionId,
+    sessionDate: toIso(session.scheduledStart),
+    trainerName: trainer?.name || session.trainerId,
     trainerNotes: session.trainerNotes || '',
     chatTranscript: transcript.map((m) => `${m.senderId}: ${m.content}`),
     apiKey,
   });
   await sessionRepository.updateAiSummaryId({ sessionId, aiSummaryId: summary.reportId });
   return summary;
+}
+
+async function getSummaryForSession(sessionId) {
+  const report = await aiReportRepository.getBySessionId(sessionId, 'summary');
+  return report;
 }
 
 async function generateProgressFromStudentId({ studentId, apiKey }) {
@@ -146,6 +165,7 @@ module.exports = {
   generateSessionSummary,
   generateProgress,
   generateSummaryForCompletedSession,
+  getSummaryForSession,
   generateProgressFromStudentId,
   generateChatResponse,
 };

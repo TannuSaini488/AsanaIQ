@@ -78,4 +78,4 @@ const start = () => {
 
 start();
 
-module.exports = app; // Trigger restart 2
+module.exports = app; // Trigger restart 6 - Ensuring free fallback is active

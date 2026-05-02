@@ -7,18 +7,20 @@ function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar__brand">
-        <Link to="/">Yoga Market</Link>
+        <Link to="/">AsanaIQ</Link>
       </div>
       <nav className="navbar__links">
         <NavLink to="/" end className="nav-item">
-          Landing
+          Home
         </NavLink>
         <NavLink to="/about" className="nav-item">
           About
         </NavLink>
-        <NavLink to="/trainers" className="nav-item">
-          {user?.role === 'trainer' ? 'Students' : 'Trainers'}
-        </NavLink>
+        {token && (
+          <NavLink to="/trainers" className="nav-item">
+            {user?.role === 'trainer' ? 'Students' : 'Trainers'}
+          </NavLink>
+        )}
         {token && (
           <NavLink to="/connections" className="nav-item">
             Inbox
@@ -46,7 +48,7 @@ function Navbar() {
         )}
       </nav>
       {token && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="navbar__user-area">
           <span className="pill">{user?.role || 'user'}</span>
           <button className="nav-logout" onClick={logout}>
             Logout

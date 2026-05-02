@@ -1,121 +1,136 @@
+/* ================================================================
+   AsanaIQ — Premium Dashboard Styles (Student & Trainer)
+   ================================================================ */
+
 .dashboard-container {
-  padding: 40px 20px;
-  max-width: 900px;
-  margin: 0 auto;
+  padding-bottom: 100px;
   font-family: 'Inter', sans-serif;
+  background-color: #FAFAF9;
+  min-height: 100vh;
 }
 
+/* Header matches the premium page-hero style */
 .dashboard-header {
-  text-align: center;
+  background-color: #fff;
+  padding: 80px 0 60px;
+  border-bottom: 1px solid #E7E5E4;
   margin-bottom: 40px;
+  text-align: center;
+  background-image: radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
 }
 
 .dashboard-header h1 {
-  font-size: 36px;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
+  font-size: 42px;
+  font-weight: 800;
+  color: #1C1917;
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
 }
 
 .dashboard-header p {
-  color: #64748b;
-  font-size: 16px;
-  margin: 0;
+  color: #78716C;
+  font-size: 18px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
+/* Modern Tab Navigation */
 .dashboard-tabs {
   display: flex;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 40px;
-  border-bottom: 2px solid #e2e8f0;
-  padding-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 32px;
+  background: #F5F5F4;
+  padding: 6px;
+  border-radius: 999px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  z-index: 10;
+  border: 1px solid #E7E5E4;
 }
 
 .tab-btn {
   background: transparent;
   border: none;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  color: #64748b;
-  padding: 10px 20px;
+  color: #78716C;
+  padding: 8px 20px;
   cursor: pointer;
-  border-radius: 99px;
-  transition: all 0.3s ease;
-  position: relative;
+  border-radius: 999px;
+  transition: all 0.2s ease;
 }
 
 .tab-btn:hover {
-  color: #0f172a;
-  background: rgba(15, 23, 42, 0.05);
+  color: #1C1917;
+  background: #FAFAF9;
 }
 
 .tab-btn.active {
-  color: #fff;
-  background: #0f172a;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  color: #8B5CF6;
+  background: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* Content Area */
 .tab-content {
-  animation: fadeIn 0.4s ease forwards;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 40px;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Hide some headings from the embedded components for a cleaner look */
-.tab-content > section > h1 {
+/* Clean up embedded headings */
+.tab-content > section > h1,
+.tab-content h1:first-child {
   display: none;
 }
 
-/* Premium Profile Form embedded in Dashboard */
+/* Premium Form adjustments for embedding */
 .profile-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  background: #fff;
-  padding: 32px;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.02);
-  max-width: 800px;
+  gap: 24px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .profile-form label {
   display: flex;
   flex-direction: column;
-  font-size: 14px;
-  font-weight: 500;
-  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  color: #78716C;
   gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .profile-form input,
-.profile-form select {
+.profile-form select,
+.profile-form textarea {
   padding: 12px 16px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border: 1px solid #E7E5E4;
+  border-radius: 12px;
   font-size: 15px;
+  font-family: inherit;
   transition: all 0.2s ease;
-  background: #f8fafc;
+  background: #FAFAF9;
 }
 
 .profile-form input:focus,
-.profile-form select:focus {
+.profile-form select:focus,
+.profile-form textarea:focus {
   outline: none;
-  border-color: #0f172a;
+  border-color: #8B5CF6;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.08);
 }
 
 .profile-form .full-width {
@@ -125,12 +140,12 @@
 .profile-form .submit-btn-wrapper {
   grid-column: 1 / -1;
   text-align: right;
-  margin-top: 10px;
+  margin-top: 16px;
 }
 
-@media (max-width: 640px) {
-  .profile-form {
-    grid-template-columns: 1fr;
-    padding: 20px;
-  }
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-header h1 { font-size: 32px; }
+  .tab-content { padding: 0 20px; }
+  .profile-form { grid-template-columns: 1fr; padding: 24px; }
 }
