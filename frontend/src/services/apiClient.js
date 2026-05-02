@@ -1,5 +1,6 @@
 import useAuth from '../hooks/useAuth';
 import { refreshAuthToken } from './authService';
+import { API_BASE_URL } from '../config';
 
 function isExpiredTokenError(res, data) {
   const message = String(data?.error?.message || data?.message || '');
@@ -13,7 +14,8 @@ function isExpiredTokenError(res, data) {
 }
 
 async function performRequest(url, { method = 'GET', body, headers = {} } = {}, token = '') {
-  const res = await fetch(url, {
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  const res = await fetch(fullUrl, {
     method,
     headers: {
       'Content-Type': 'application/json',

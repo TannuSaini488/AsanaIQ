@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
+import { SOCKET_URL } from '../config';
 import useAuth from './useAuth';
 import { refreshAuthToken } from '../services/authService';
 
-export function useSocket({ url = '/' } = {}) {
+export function useSocket({ url = SOCKET_URL } = {}) {
   const { token } = useAuth();
   const socketRef = useRef(null);
   const [connected, setConnected] = useState(false);

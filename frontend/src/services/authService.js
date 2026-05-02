@@ -1,5 +1,7 @@
-const API_BASE = '/api/auth';
+import { API_BASE_URL } from '../config';
 import { extractRoleFromToken } from '../utils/jwt';
+
+const API_BASE = `${API_BASE_URL}/api/auth`;
 
 const TOKEN_KEY = 'token';
 const REFRESH_TOKEN_KEY = 'refreshToken';
