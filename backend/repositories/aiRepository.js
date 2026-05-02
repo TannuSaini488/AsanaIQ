@@ -9,7 +9,9 @@ const AppError = require('../utils/appError');
 
 const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
-const AI_PROVIDER = String(process.env.AI_PROVIDER || 'openrouter').trim().toLowerCase();
+const config = require('../config');
+
+const AI_PROVIDER = config.aiProvider;
 
 const REQUEST_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 30000);
 // Prefer a stable, widely-available model; retry with rolling alias if needed.

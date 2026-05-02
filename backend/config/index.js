@@ -8,6 +8,7 @@ const config = {
   firebaseWebApiKey: process.env.FIREBASE_WEB_API_KEY,
   geminiApiKey: process.env.GEMINI_API_KEY,
   openrouterApiKey: process.env.OPENROUTER_API_KEY,
+  aiProvider: String(process.env.AI_PROVIDER || 'openrouter').trim().toLowerCase(),
 };
 
 module.exports = config;

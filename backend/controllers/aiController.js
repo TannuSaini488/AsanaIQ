@@ -8,9 +8,8 @@ const {
 } = require('../validators/aiValidator');
 const config = require('../config');
 
-const AI_PROVIDER = String(process.env.AI_PROVIDER || 'gemini').trim().toLowerCase();
 function resolveApiKey() {
-  return AI_PROVIDER === 'openrouter' ? config.openrouterApiKey : config.geminiApiKey;
+  return config.aiProvider === 'openrouter' ? config.openrouterApiKey : config.geminiApiKey;
 }
 
 async function match(req, res, next) {
