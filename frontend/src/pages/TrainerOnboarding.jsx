@@ -81,7 +81,7 @@ function TrainerOnboarding({ isEmbedded = false }) {
       updateUser({ onboardingCompleted: true });
       setMessage('Trainer profile saved');
       if (!isEmbedded) {
-        navigate('/home');
+        navigate('/');
       }
     } catch (err) {
       setError(err.message);

@@ -93,7 +93,7 @@ function Onboarding({ isEmbedded = false }) {
       updateUser({ onboardingCompleted: true });
       setMessage('Profile saved successfully');
       if (!isEmbedded) {
-        navigate('/home');
+        navigate('/');
       }
     } catch (err) {
       setError(err.message);
