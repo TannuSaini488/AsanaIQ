@@ -10,9 +10,11 @@ function Navbar() {
         <Link to="/">AsanaIQ</Link>
       </div>
       <nav className="navbar__links">
-        <NavLink to="/" end className="nav-item">
-          Home
-        </NavLink>
+        {token && (
+          <NavLink to="/" end className="nav-item">
+            Home
+          </NavLink>
+        )}
         <NavLink to="/about" className="nav-item">
           About
         </NavLink>
@@ -26,8 +28,8 @@ function Navbar() {
             Inbox
           </NavLink>
         )}
-        {user?.role === 'student' && (
-          <NavLink to="/my-journey" className="nav-item">
+        {token && user?.role === 'student' && (
+          <NavLink to="/progress" className="nav-item">
             My Journey
           </NavLink>
         )}

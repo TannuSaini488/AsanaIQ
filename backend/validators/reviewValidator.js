@@ -28,7 +28,14 @@ const trainerIdParamsSchema = z
   })
   .strict();
 
+const studentIdParamsSchema = z
+  .object({
+    studentId: idSchema,
+  })
+  .strict();
+
 module.exports = {
   createReviewSchema,
   trainerIdParamsSchema,
+  studentIdParamsSchema,
 };

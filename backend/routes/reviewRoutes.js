@@ -7,5 +7,7 @@ const router = express.Router();
 
 router.post('/', verifyJwt, roleGuard('student'), reviewController.create);
 router.get('/trainer/:trainerId', verifyJwt, roleGuard('student', 'trainer'), reviewController.listByTrainer);
+router.get('/student/:studentId', verifyJwt, roleGuard('student', 'trainer'), reviewController.listByStudent);
 
 module.exports = router;
+

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { fetchTrainers } from '../services/trainerService';
 import { matchBestTrainer } from '../services/aiService';
 import { fetchSlots } from '../services/slotService';
@@ -9,6 +9,7 @@ import { getMyConnections, requestConnection, updateConnectionStatus } from '../
 import { formatSlotLabel } from '../utils/formatSlot';
 import useAuth from '../hooks/useAuth';
 import { extractUserIdFromToken } from '../utils/jwt';
+import './Trainers.css';
 
 function Trainers() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ function Trainers() {
   const [selectedTrainerId, setSelectedTrainerId] = useState('');
   const [connections, setConnections] = useState([]);
   const [connectionActionLoading, setConnectionActionLoading] = useState(false);
+  const [connectionsOpen, setConnectionsOpen] = useState(false);
 
   const getTrainerId = (trainer) => trainer?.id || trainer?.userId || '';
 
@@ -222,317 +224,237 @@ function Trainers() {
     return { sentPending: sent, receivedPending: received, acceptedConnections: accepted };
   }, [connections, isStudentView, currentUserId]);
 
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-  };
-
   return (
     <div className="trainers-page">
-      <header className="premium-hero">
-        <div className="container">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="premium-title"
-          >
+      {/* ── Compact Toolbar ── */}
+      <div className="tp-toolbar">
+        <div className="tp-toolbar-left">
+          <h1 className="tp-title">
             {isStudentView ? 'Find Your ' : 'Manage Your '}
-            <span className="gradient-text">{isStudentView ? 'Perfect Trainer' : 'Community'}</span>
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="premium-subtitle"
-          >
-            {isStudentView 
-              ? 'Connect with world-class instructors tailored to your journey.' 
-              : 'Empower your students with personalized guidance and analytics.'}
-          </motion.p>
+            <span className="tp-title-accent">{isStudentView ? 'Perfect Trainer' : 'Community'}</span>
+          </h1>
         </div>
-      </header>
-
-      <div className="container" style={{ marginTop: '-40px', position: 'relative', zIndex: 10, paddingBottom: '100px' }}>
-        {isStudentView ? (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="ai-row glass-card"
-          >
-            <div className="ai-row-content">
-              <h3>Smart Trainer Match</h3>
-              <p>Let our AI find the best coach based on your profile and goals.</p>
-            </div>
-            <button type="button" className="primary-btn pulse-btn" onClick={handleAiMatch} disabled={aiLoading || trainers.length === 0}>
-              {aiLoading ? 'Analyzing...' : 'Find Best Match (AI)'}
+        <div className="tp-toolbar-right">
+          <div className="tp-search-box">
+            <svg className="tp-search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={isStudentView ? 'Search trainers...' : 'Search students...'}
+              className="tp-search-input"
+            />
+          </div>
+          {isStudentView && (
+            <button
+              type="button"
+              className="tp-ai-btn"
+              onClick={handleAiMatch}
+              disabled={aiLoading || trainers.length === 0}
+            >
+              <span className="tp-ai-sparkle">✨</span>
+              {aiLoading ? 'Analyzing...' : 'AI Match'}
             </button>
-            {aiError && <span className="auth-error" style={{ marginLeft: 8 }}>{aiError}</span>}
-          </motion.div>
-        ) : null}
+          )}
+        </div>
+      </div>
 
+      {/* ── AI Result Banner (slides in when available) ── */}
+      <AnimatePresence>
         {isStudentView && aiResult && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="ai-card premium-card highlighted"
+          <motion.div
+            className="tp-ai-banner"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="ai-card-header">
-              <h3><span className="sparkle-icon">✨</span> Recommended Trainer</h3>
-              <span className="pill purple">Match Score: {aiResult.matchScore?.toFixed?.(2) ?? aiResult.matchScore}</span>
-            </div>
-            <div className="ai-card-body">
-              <p><strong>Name:</strong> {recommendedTrainer?.name || aiResult.bestMatchTrainerId}</p>
-              <p><strong>Insight:</strong> {aiResult.reasoning}</p>
-              {recommendedTrainer && (
-                <div className="ai-card-meta">
-                  <span>Price: {recommendedTrainer.pricingPerSession ? `$${recommendedTrainer.pricingPerSession}` : 'N/A'}</span>
-                  <span>Rating: {recommendedTrainer.ratingAverage ?? 'N/A'} ⭐</span>
+            <div className="tp-ai-banner-inner">
+              <div className="tp-ai-banner-left">
+                <span className="tp-ai-banner-icon">✨</span>
+                <div>
+                  <div className="tp-ai-banner-title">
+                    Recommended: <strong>{recommendedTrainer?.name || aiResult.bestMatchTrainerId}</strong>
+                  </div>
+                  <div className="tp-ai-banner-reason">{aiResult.reasoning}</div>
                 </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-
-        <motion.div 
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="connections-board"
-        >
-          <motion.div variants={fadeInUp} className="conn-card glass-card">
-            <div className="conn-card-header">
-              <div className="conn-card-title">Pending Outreach</div>
-              <span className="count-pill">{sentPending.length}</span>
-            </div>
-            <div className="conn-list">
-              {sentPending.length === 0 ? (
-                <div className="conn-empty">No pending requests.</div>
-              ) : (
-                sentPending.slice(0, 5).map((c) => {
-                  const peerId = peerIdForConnection(c);
-                  return (
-                    <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
-                      <div className="conn-item-main">
-                        <div className="conn-item-title">{getPeerLabel(peerId)}</div>
-                        <span className="status-pill status-pending">Pending</span>
-                      </div>
-                      <button
-                        type="button"
-                        className="text-btn"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setSelectedTrainerId(peerId);
-                        }}
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
-
-          <motion.div variants={fadeInUp} className="conn-card glass-card">
-            <div className="conn-card-header">
-              <div className="conn-card-title">Incoming Requests</div>
-              <span className="count-pill">{receivedPending.length}</span>
-            </div>
-            <div className="conn-list">
-              {receivedPending.length === 0 ? (
-                <div className="conn-empty">No incoming requests.</div>
-              ) : (
-                receivedPending.slice(0, 5).map((c) => {
-                  const peerId = peerIdForConnection(c);
-                  return (
-                    <div key={c.id || `${c.trainerId}-${c.studentId}`} className="conn-item">
-                      <div className="conn-item-main">
-                        <div className="conn-item-title">{getPeerLabel(peerId)}</div>
-                        <span className="status-pill status-pending">New</span>
-                      </div>
-                      <div className="conn-actions">
-                        <button
-                          type="button"
-                          className="primary-btn small"
-                          onClick={() => handleConnectionResponse(c.id, 'accepted')}
-                          disabled={connectionActionLoading}
-                        >
-                          Accept
-                        </button>
-                        <button
-                          type="button"
-                          className="danger-btn small"
-                          onClick={() => handleConnectionResponse(c.id, 'rejected')}
-                          disabled={connectionActionLoading}
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-
-        <div className="trainers-layout">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="trainer-list glass-card"
-            style={{ backdropFilter: 'blur(8px)' }}
-          >
-            <div className="trainer-list-toolbar">
-              <div className="search-wrapper">
-                <input
-                  className="trainer-search"
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={isStudentView ? 'Search by name or specialty...' : 'Search students...'}
-                />
+              </div>
+              <div className="tp-ai-banner-right">
+                <span className="tp-ai-banner-score">
+                  Score: {aiResult.matchScore?.toFixed?.(2) ?? aiResult.matchScore}
+                </span>
+                {recommendedTrainer && (
+                  <>
+                    <span className="tp-ai-banner-meta">
+                      {recommendedTrainer.pricingPerSession ? `$${recommendedTrainer.pricingPerSession}` : ''}
+                    </span>
+                    <span className="tp-ai-banner-meta">★ {recommendedTrainer.ratingAverage ?? 'N/A'}</span>
+                  </>
+                )}
               </div>
             </div>
-            <div className="scroll-area">
-              {!loading && !error && filtered.length === 0 ? (
-                <div className="trainer-list-empty">
-                  {isStudentView ? 'No trainers found.' : 'No students found.'}
-                </div>
-              ) : null}
-              {loading && <div className="trainer-list-empty">Loading...</div>}
-              {!loading &&
-                !error &&
-                filtered.map((t) => {
-                  const trainerId = getTrainerId(t);
-                  const isSelected = trainerId === selectedTrainerId;
-                  const conn = getConnectionForPeer(trainerId);
-                  return (
-                    <button
-                      key={trainerId || t.email}
-                      type="button"
-                      className={`trainer-list-item ${isSelected ? 'active' : ''}`}
-                      onClick={() => setSelectedTrainerId(trainerId)}
-                    >
-                      <div className="trainer-avatar">{(t.name || 'T').trim().charAt(0).toUpperCase()}</div>
-                      <div className="trainer-list-content">
-                        <div className="trainer-list-title">{t.name || 'User'}</div>
-                        <div className="trainer-list-subtitle">
-                          {isStudentView
-                            ? t.specialization?.join(', ') || 'General'
-                            : t.primaryGoal || t.fitnessLevel || 'Student'}
-                        </div>
-                      </div>
-                      <div className="trainer-list-meta">
-                        {conn?.status && (
-                          <span className={`status-pill status-${conn.status}`}>
-                            {conn.status}
-                          </span>
-                        )}
-                        {isStudentView && <span className="rating-mini">★ {t.ratingAverage ?? '0'}</span>}
-                      </div>
-                    </button>
-                  );
-                })}
-            </div>
+            {aiError && <div className="tp-ai-error">{aiError}</div>}
           </motion.div>
+        )}
+      </AnimatePresence>
 
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="trainer-panel glass-card"
-            style={{ backdropFilter: 'blur(8px)' }}
-          >
+      {/* ── Main Content: Sidebar + Detail Panel ── */}
+      <div className="tp-content">
+        {/* Sidebar List */}
+        <aside className="tp-sidebar">
+          <div className="tp-sidebar-header">
+            <span className="tp-sidebar-count">
+              {loading ? '...' : filtered.length} {isStudentView ? 'trainers' : 'students'}
+            </span>
+          </div>
+          <div className="tp-sidebar-list">
+            {loading && (
+              <div className="tp-empty-state">
+                <div className="tp-spinner" />
+                <span>Loading...</span>
+              </div>
+            )}
+            {!loading && !error && filtered.length === 0 && (
+              <div className="tp-empty-state">
+                <span className="tp-empty-icon">🔍</span>
+                <span>{isStudentView ? 'No trainers found' : 'No students found'}</span>
+              </div>
+            )}
+            {!loading &&
+              !error &&
+              filtered.map((t) => {
+                const trainerId = getTrainerId(t);
+                const isSelected = trainerId === selectedTrainerId;
+                const conn = getConnectionForPeer(trainerId);
+                return (
+                  <button
+                    key={trainerId || t.email}
+                    type="button"
+                    className={`tp-list-item ${isSelected ? 'selected' : ''}`}
+                    onClick={() => setSelectedTrainerId(trainerId)}
+                  >
+                    <div className="tp-list-avatar">
+                      {(t.name || 'T').trim().charAt(0).toUpperCase()}
+                    </div>
+                    <div className="tp-list-info">
+                      <div className="tp-list-name">{t.name || 'User'}</div>
+                      <div className="tp-list-spec">
+                        {isStudentView
+                          ? t.specialization?.join(', ') || 'General'
+                          : t.primaryGoal || t.fitnessLevel || 'Student'}
+                      </div>
+                    </div>
+                    <div className="tp-list-right">
+                      {conn?.status && (
+                        <span className={`tp-status tp-status-${conn.status}`}>
+                          {conn.status}
+                        </span>
+                      )}
+                      {isStudentView && (
+                        <span className="tp-rating">★ {t.ratingAverage ?? '0'}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+          </div>
+        </aside>
+
+        {/* Detail Panel */}
+        <main className="tp-detail">
+          <AnimatePresence mode="wait">
             {selectedTrainer ? (
-              <div className="panel-content">
-                <div className="panel-header">
-                  <div className="panel-avatar-large">
+              <motion.div
+                key={selectedId}
+                className="tp-detail-inner"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {/* Header */}
+                <div className="tp-detail-header">
+                  <div className="tp-detail-avatar">
                     {(selectedTrainer.name || 'T').trim().charAt(0).toUpperCase()}
                   </div>
-                  <div className="panel-header-text">
-                    <h3>{selectedTrainer.name}</h3>
-                    <div className="pill purple">
+                  <div className="tp-detail-header-info">
+                    <h2 className="tp-detail-name">{selectedTrainer.name}</h2>
+                    <span className="tp-detail-pill">
                       {isStudentView
                         ? selectedTrainer.specialization?.join(', ') || 'General'
                         : selectedTrainer.primaryGoal || 'Student'}
-                    </div>
+                    </span>
                   </div>
                 </div>
 
-                <div className="panel-stats">
+                {/* Stats */}
+                <div className="tp-detail-stats">
                   {isStudentView ? (
                     <>
-                      <div className="stat-item">
-                        <label>Experience</label>
-                        <span>{selectedTrainer.experienceYears ?? 'N/A'} yrs</span>
+                      <div className="tp-stat">
+                        <span className="tp-stat-label">Experience</span>
+                        <span className="tp-stat-value">{selectedTrainer.experienceYears ?? 'N/A'} <small>yrs</small></span>
                       </div>
-                      <div className="stat-item">
-                        <label>Rating</label>
-                        <span>{selectedTrainer.ratingAverage ?? '0'} / 5</span>
+                      <div className="tp-stat">
+                        <span className="tp-stat-label">Rating</span>
+                        <span className="tp-stat-value">{selectedTrainer.ratingAverage ?? '0'} <small>/ 5</small></span>
                       </div>
-                      <div className="stat-item">
-                        <label>Session Fee</label>
-                        <span>{selectedTrainer.pricingPerSession ? `$${selectedTrainer.pricingPerSession}` : 'N/A'}</span>
+                      <div className="tp-stat">
+                        <span className="tp-stat-label">Session Fee</span>
+                        <span className="tp-stat-value">{selectedTrainer.pricingPerSession ? `$${selectedTrainer.pricingPerSession}` : 'N/A'}</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="stat-item">
-                        <label>Fitness Level</label>
-                        <span>{selectedTrainer.fitnessLevel || 'N/A'}</span>
+                      <div className="tp-stat">
+                        <span className="tp-stat-label">Fitness Level</span>
+                        <span className="tp-stat-value">{selectedTrainer.fitnessLevel || 'N/A'}</span>
                       </div>
-                      <div className="stat-item">
-                        <label>Primary Goal</label>
-                        <span>{selectedTrainer.primaryGoal || 'N/A'}</span>
+                      <div className="tp-stat">
+                        <span className="tp-stat-label">Primary Goal</span>
+                        <span className="tp-stat-value">{selectedTrainer.primaryGoal || 'N/A'}</span>
                       </div>
-                      <div className="stat-item">
-                        <label>Gender</label>
-                        <span>{selectedTrainer.gender || 'N/A'}</span>
+                      <div className="tp-stat">
+                        <span className="tp-stat-label">Gender</span>
+                        <span className="tp-stat-value">{selectedTrainer.gender || 'N/A'}</span>
                       </div>
                     </>
                   )}
                 </div>
 
-                <div className="panel-actions">
+                {/* Actions */}
+                <div className="tp-detail-actions">
                   {!activeConnection ? (
-                    <button type="button" className="primary-btn large" onClick={handleConnect} disabled={connectionActionLoading}>
+                    <button type="button" className="tp-btn tp-btn-primary" onClick={handleConnect} disabled={connectionActionLoading}>
                       {connectionActionLoading ? 'Sending...' : 'Request Connection'}
                     </button>
                   ) : activeConnection.status === 'pending' ? (
                     (activeConnection.requesterId === currentUserId || (!activeConnection.requesterId && isStudentView)) ? (
-                      <button type="button" className="primary-btn large" disabled>
+                      <button type="button" className="tp-btn tp-btn-muted" disabled>
                         Connection Requested
                       </button>
                     ) : (
-                      <div className="dual-actions">
-                        <button type="button" className="primary-btn" onClick={() => handleConnectionResponse(activeConnection.id, 'accepted')} disabled={connectionActionLoading}>
+                      <div className="tp-btn-group">
+                        <button type="button" className="tp-btn tp-btn-primary" onClick={() => handleConnectionResponse(activeConnection.id, 'accepted')} disabled={connectionActionLoading}>
                           Accept
                         </button>
-                        <button type="button" className="danger-btn" onClick={() => handleConnectionResponse(activeConnection.id, 'rejected')} disabled={connectionActionLoading}>
+                        <button type="button" className="tp-btn tp-btn-danger" onClick={() => handleConnectionResponse(activeConnection.id, 'rejected')} disabled={connectionActionLoading}>
                           Reject
                         </button>
                       </div>
                     )
                   ) : activeConnection.status === 'accepted' ? (
-                    <div className="dual-actions">
-                      <button type="button" className="primary-btn" onClick={() => navigate('/connections')}>
+                    <div className="tp-btn-group">
+                      <button type="button" className="tp-btn tp-btn-primary" onClick={() => navigate('/connections')}>
                         Message
                       </button>
                       {isStudentView && (
                         <button
                           type="button"
-                          className="secondary-btn"
+                          className="tp-btn tp-btn-outline"
                           onClick={() => loadSlots(selectedId)}
                           disabled={slotsLoading[selectedId]}
                         >
@@ -541,22 +463,25 @@ function Trainers() {
                       )}
                     </div>
                   ) : (
-                    <p className="status-notice">Connection is {activeConnection.status}</p>
+                    <p className="tp-status-notice">Connection is {activeConnection.status}</p>
                   )}
                 </div>
 
+                {/* Slots */}
                 {isStudentView && slotsByTrainer[selectedId] && (
-                  <div className="slots-container">
-                    <h4>Available Time Slots</h4>
-                    <div className="slots-grid">
-                      {(slotsByTrainer[selectedId] || []).length === 0 && <p className="muted">No slots available.</p>}
+                  <div className="tp-slots">
+                    <h4 className="tp-slots-title">Available Slots</h4>
+                    <div className="tp-slots-strip">
+                      {(slotsByTrainer[selectedId] || []).length === 0 && (
+                        <p className="tp-slots-empty">No slots available</p>
+                      )}
                       {(slotsByTrainer[selectedId] || []).map((slot) => {
                         const slotId = slot.id || slot.slotId;
                         const label = formatSlotLabel(slot);
                         return (
                           <button
                             key={slotId}
-                            className={`slot-chip ${slot.isBooked ? 'booked' : ''}`}
+                            className={`tp-slot ${slot.isBooked ? 'booked' : ''}`}
                             onClick={() => handleBook(selectedId, slotId)}
                             disabled={slot.isBooked || bookingState.loading}
                           >
@@ -567,18 +492,145 @@ function Trainers() {
                     </div>
                   </div>
                 )}
-              </div>
+              </motion.div>
             ) : (
-              <div className="panel-empty">
-                <div className="empty-icon">🧘</div>
+              <motion.div
+                key="empty"
+                className="tp-detail-empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <span className="tp-empty-yoga">🧘</span>
                 <p>Select a {isStudentView ? 'trainer' : 'student'} to view details</p>
-              </div>
+              </motion.div>
             )}
-          </motion.div>
-        </div>
-        {bookingState.message && <p className="success-toast">{bookingState.message}</p>}
-        {bookingState.error && <p className="error-toast">{bookingState.error}</p>}
+          </AnimatePresence>
+        </main>
       </div>
+
+      {/* ── Collapsible Connections Bar ── */}
+      {(sentPending.length > 0 || receivedPending.length > 0) && (
+        <div className="tp-conn-bar">
+          <button
+            type="button"
+            className="tp-conn-toggle"
+            onClick={() => setConnectionsOpen(!connectionsOpen)}
+          >
+            <div className="tp-conn-summary">
+              <span className="tp-conn-label">Connections</span>
+              {sentPending.length > 0 && (
+                <span className="tp-conn-badge tp-conn-badge-pending">{sentPending.length} pending</span>
+              )}
+              {receivedPending.length > 0 && (
+                <span className="tp-conn-badge tp-conn-badge-incoming">{receivedPending.length} incoming</span>
+              )}
+            </div>
+            <span className={`tp-conn-chevron ${connectionsOpen ? 'open' : ''}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </span>
+          </button>
+          <AnimatePresence>
+            {connectionsOpen && (
+              <motion.div
+                className="tp-conn-panel"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="tp-conn-grid">
+                  {/* Sent Pending */}
+                  {sentPending.length > 0 && (
+                    <div className="tp-conn-section">
+                      <div className="tp-conn-section-title">Pending Outreach</div>
+                      {sentPending.slice(0, 5).map((c) => {
+                        const peerId = peerIdForConnection(c);
+                        return (
+                          <div key={c.id || `${c.trainerId}-${c.studentId}`} className="tp-conn-item">
+                            <span className="tp-conn-item-name">{getPeerLabel(peerId)}</span>
+                            <span className="tp-status tp-status-pending">Pending</span>
+                            <button
+                              type="button"
+                              className="tp-conn-view"
+                              onClick={() => {
+                                setSearchQuery('');
+                                setSelectedTrainerId(peerId);
+                                setConnectionsOpen(false);
+                              }}
+                            >
+                              View
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Received Pending */}
+                  {receivedPending.length > 0 && (
+                    <div className="tp-conn-section">
+                      <div className="tp-conn-section-title">Incoming Requests</div>
+                      {receivedPending.slice(0, 5).map((c) => {
+                        const peerId = peerIdForConnection(c);
+                        return (
+                          <div key={c.id || `${c.trainerId}-${c.studentId}`} className="tp-conn-item">
+                            <span className="tp-conn-item-name">{getPeerLabel(peerId)}</span>
+                            <span className="tp-status tp-status-pending">New</span>
+                            <div className="tp-conn-item-actions">
+                              <button
+                                type="button"
+                                className="tp-btn tp-btn-primary tp-btn-xs"
+                                onClick={() => handleConnectionResponse(c.id, 'accepted')}
+                                disabled={connectionActionLoading}
+                              >
+                                Accept
+                              </button>
+                              <button
+                                type="button"
+                                className="tp-btn tp-btn-danger tp-btn-xs"
+                                onClick={() => handleConnectionResponse(c.id, 'rejected')}
+                                disabled={connectionActionLoading}
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* ── Toast Notifications ── */}
+      <AnimatePresence>
+        {bookingState.message && (
+          <motion.div
+            className="tp-toast tp-toast-success"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            {bookingState.message}
+          </motion.div>
+        )}
+        {bookingState.error && (
+          <motion.div
+            className="tp-toast tp-toast-error"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            {bookingState.error}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

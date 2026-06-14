@@ -1,29 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  CheckCircle, Users, Zap, ShieldCheck, ArrowRight, Star, 
-  Heart, Brain, Activity, Sun, Moon, Dumbbell, Sparkles
+  Users, Zap, ShieldCheck, ArrowRight, Star, 
+  Heart, Brain, Activity, Sun, Leaf
 } from 'lucide-react';
 
 const Landing = () => {
-  const images = {
-    hero: "/assets/yoga_hero.png",
-    flexibility: "/assets/yoga_flexibility.png",
-    meditation: "/assets/yoga_meditation.png",
-    community: "/assets/yoga_community.png",
-    aiMatching: "/assets/ai_matching.png",
-    videoSession: "/assets/video_session.png",
-    sleep: "/assets/image.png"
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
+  // Animation variants
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 40 },
+    visible: (delay = 0) => ({
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: "easeOut", delay }
+    })
   };
 
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { 
-      opacity: 1, 
+  const fadeInDown = {
+    hidden: { opacity: 0, y: -40 },
+    visible: (delay = 0) => ({
+      opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: "easeOut" }
-    }
+      transition: { duration: 0.8, ease: "easeOut", delay }
+    })
+  };
+
+  const scaleIn = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: (delay = 0) => ({
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.8, ease: "easeOut", delay }
+    })
   };
 
   const staggerContainer = {
@@ -31,643 +42,586 @@ const Landing = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2
+        staggerChildren: 0.15,
+        delayChildren: 0.1
       }
     }
   };
 
   return (
-    <div className="landing-page" style={{ ...styles.landingWrapper, minHeight: '100vh' }}>
-      {/* 1. HERO SECTION */}
+    <div className="landing-page" style={styles.landingWrapper}>
+      {/* HERO SECTION WITH VIDEO BACKGROUND */}
       <section style={styles.heroSection}>
-        <div style={styles.container}>
-          <div style={styles.heroContent}>
-            <motion.div 
-              initial={{ x: -100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ duration: 0.8 }}
-              style={styles.heroText}
+        {/* Background Video */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          onLoadedData={() => setVideoLoaded(true)}
+          style={styles.backgroundVideo}
+        >
+          <source src="/assets/7580347-uhd_3840_2160_25fps.mp4" type="video/mp4" />
+        </video>
+
+        {/* Overlay Gradient */}
+        <div style={styles.videoOverlay}></div>
+
+        {/* Content */}
+        <div style={styles.heroContainer}>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            custom={0}
+            variants={fadeInDown}
+            style={styles.heroBadge}
+          >
+            <Leaf size={16} style={{ marginRight: 8 }} />
+            <span>Welcome to Your Wellness Journey</span>
+          </motion.div>
+
+          <motion.h1
+            initial="hidden"
+            animate="visible"
+            custom={0.2}
+            variants={fadeInUp}
+            style={styles.heroTitle}
+          >
+            Find Your <span style={styles.gradientText}>Perfect Balance</span>
+          </motion.h1>
+
+          <motion.p
+            initial="hidden"
+            animate="visible"
+            custom={0.4}
+            variants={fadeInUp}
+            style={styles.heroSubtitle}
+          >
+            Connect with certified yoga trainers powered by AI. 
+            <br />
+            Experience personalized sessions tailored to your unique needs.
+          </motion.p>
+
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            custom={0.6}
+            variants={fadeInUp}
+            style={styles.ctaButtonGroup}
+          >
+            <Link to="/register" style={styles.primaryButton}>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Start Your Journey
+                <ArrowRight size={20} style={{ marginLeft: 8 }} />
+              </motion.div>
+            </Link>
+            <Link to="/login" style={styles.secondaryButton}>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Trainer Login
+              </motion.div>
+            </Link>
+          </motion.div>
+
+          {/* Trust Indicators */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            custom={0.8}
+            variants={fadeInUp}
+            style={styles.trustIndicators}
+          >
+            <motion.div
+              animate={{ y: [0, -20, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              style={styles.trustCard}
             >
-              <div style={styles.badge}>
-                <Sparkles size={14} style={{ marginRight: 8 }} /> 
-                Next-Gen Yoga Platform
-              </div>
-              <h1 style={styles.mainTitle}>
-                Find Your Balance with <span style={styles.gradientText}>AsanaIQ</span>
-              </h1>
-              <p style={styles.subTitle}>
-                Experience the ultimate synergy of ancient wisdom and modern AI. 
-                Connect with world-class trainers and transform your life today.
-              </p>
-              <div style={styles.ctaGroup}>
-                <Link to="/register" style={styles.primaryBtn}>
-                  Get Started for Free <ArrowRight size={18} />
-                </Link>
-                <Link to="/login" style={styles.secondaryBtn}>
-                  Trainer Login
-                </Link>
-              </div>
-              <div style={styles.trustRow}>
-                <div style={styles.trustItem}><Users size={16} /> 10k+ Members</div>
-                <div style={styles.trustItem}><Star size={16} color="#F59E0B" /> 4.9/5 Rating</div>
+              <Users size={24} style={{ color: '#06B6D4' }} />
+              <div>
+                <div style={styles.trustNumber}>10K+</div>
+                <div style={styles.trustLabel}>Active Members</div>
               </div>
             </motion.div>
 
-            <motion.div 
-              initial={{ scale: 0.8, opacity: 0, rotateZ: -5 }}
-              animate={{ scale: 1, opacity: 1, rotateZ: 0 }}
-              transition={{ duration: 1 }}
-              whileHover={{ rotateY: 5, rotateX: -5 }}
-              style={styles.heroImageWrapper}
+            <motion.div
+              animate={{ y: [0, -20, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+              style={styles.trustCard}
             >
-              <img src={images.hero} alt="Yoga Hero" style={styles.heroImage} />
-              <motion.div 
-                animate={{ y: [0, -10, 0] }} 
-                transition={{ repeat: Infinity, duration: 4 }}
-                style={styles.floatingCard}
-              >
-                <Zap size={20} color="#8B5CF6" />
-                <span>AI Plan Generated!</span>
-              </motion.div>
+              <Star size={24} style={{ color: '#F59E0B' }} />
+              <div>
+                <div style={styles.trustNumber}>4.9/5</div>
+                <div style={styles.trustLabel}>Trainer Rating</div>
+              </div>
             </motion.div>
-          </div>
+
+            <motion.div
+              animate={{ y: [0, -20, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+              style={styles.trustCard}
+            >
+              <Heart size={24} style={{ color: '#EC4899' }} />
+              <div>
+                <div style={styles.trustNumber}>98%</div>
+                <div style={styles.trustLabel}>Satisfaction</div>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
+
+        {/* Decorative Elements */}
+        <motion.div
+          style={styles.floatingOrb1}
+          animate={{ y: [0, -30, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        ></motion.div>
+        <motion.div
+          style={styles.floatingOrb2}
+          animate={{ x: [0, 30, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        ></motion.div>
       </section>
 
-      {/* 2. YOGA BENEFITS SECTION */}
+      {/* BENEFITS SECTION */}
       <section style={styles.benefitsSection}>
         <div style={styles.container}>
-          <motion.div 
+          <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
-            variants={fadeInUp}
-            style={styles.sectionHeader}
-          >
-            <h2 style={styles.sectionTitle}>Holistic Benefits of Yoga</h2>
-            <p style={styles.sectionDesc}>Discover how yoga transforms your body, mind, and soul.</p>
-          </motion.div>
-
-          <motion.div 
             variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            style={styles.benefitsGrid}
+            style={styles.benefitsContent}
           >
-            <BenefitCard 
-              icon={<Heart size={28} color="#EF4444" />}
-              title="Physical Vitality"
-              desc="Improve cardiovascular health, boost metabolism, and increase physical stamina through dynamic flows."
-              image={images.flexibility}
-            />
-            <BenefitCard 
-              icon={<Brain size={28} color="#3B82F6" />}
-              title="Mental Clarity"
-              desc="Reduce stress and anxiety while improving focus and cognitive function with mindful meditation."
-              image={images.meditation}
-            />
-            <BenefitCard 
-              icon={<Activity size={28} color="#10B981" />}
-              title="Incredible Flexibility"
-              desc="Stretch beyond your limits, improve posture, and alleviate chronic pain in joints and muscles."
-              image={images.community}
-            />
-            <BenefitCard 
-              icon={<Moon size={28} color="#8B5CF6" />}
-              title="Restorative Sleep"
-              desc="Master relaxation techniques that calm the nervous system and promote deep, restorative sleep."
-              image={images.sleep}
-            />
-          </motion.div>
-        </div>
-      </section>
-
-      {/* 2.5 PLATFORM FEATURES SECTION */}
-      <section style={styles.platformFeaturesSection}>
-        <div style={styles.container}>
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeInUp}
-            style={styles.sectionHeader}
-          >
-            <h2 style={styles.sectionTitle}>Built for Your Growth</h2>
-            <p style={styles.sectionDesc}>Powerful tools designed to make your yoga journey seamless and effective.</p>
-          </motion.div>
-
-          <div style={styles.featureColumn}>
-            {/* Feature 1: AI Matching */}
-            <div style={styles.splitFeatureRow}>
-              <motion.div 
-                initial={{ x: -50, opacity: 0 }}
-                whileInView={{ x: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                style={styles.splitFeatureImage}
-              >
-                <img src={images.aiMatching} alt="AI Matching" style={styles.featureImg} />
-              </motion.div>
-              <motion.div 
-                initial={{ x: 50, opacity: 0 }}
-                whileInView={{ x: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                style={styles.splitFeatureText}
-              >
-                <div style={styles.featureNumber}>01</div>
-                <h3 style={styles.h3Title}>Intelligent AI Matching</h3>
-                <p style={styles.pText}>
-                  No more guessing. Our proprietary AI analyzes your physical profile, goals, 
-                  and even past injuries to find the trainer who is truly the best fit for your unique needs.
-                </p>
-                <Link to="/register" style={styles.textLink}>Try AI Matching <ArrowRight size={16} /></Link>
-              </motion.div>
-            </div>
-
-            {/* Feature 2: Live Video Sessions */}
-            <div style={styles.splitFeatureRowReverse}>
-              <motion.div 
-                initial={{ x: 50, opacity: 0 }}
-                whileInView={{ x: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                style={styles.splitFeatureImage}
-              >
-                <img src={images.videoSession} alt="Video Session" style={styles.featureImg} />
-              </motion.div>
-              <motion.div 
-                initial={{ x: -50, opacity: 0 }}
-                whileInView={{ x: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                style={styles.splitFeatureText}
-              >
-                <div style={styles.featureNumber}>02</div>
-                <h3 style={styles.h3Title}>High-Definition Video Calls</h3>
-                <p style={styles.pText}>
-                  Experience one-on-one sessions as if you were in the same room. 
-                  Our integrated video platform is optimized for clarity, ensuring your trainer 
-                  can see every alignment and provide real-time corrections.
-                </p>
-                <Link to="/register" style={styles.textLink}>Book a Session <ArrowRight size={16} /></Link>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. INTERACTIVE FEATURE SECTION */}
-      <section style={styles.featureHighlightSection}>
-        <div style={styles.container}>
-          <div style={styles.featureRow}>
-            <motion.div 
-              initial={{ x: -50, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              style={styles.featureImageSide}
-            >
-              <img src={images.meditation} alt="Meditation" style={styles.roundedImage} />
-            </motion.div>
-            <motion.div 
-              initial={{ x: 50, opacity: 0 }}
-              whileInView={{ x: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              style={styles.featureTextSide}
-            >
-              <div style={styles.smallBadge}>MINDFULNESS</div>
-              <h2 style={styles.h2Title}>Master Your Inner Peace</h2>
-              <p style={styles.pText}>
-                Our AI-guided meditation sessions help you find tranquility in a chaotic world. 
-                Whether you're a beginner or an expert, we match you with the perfect routine.
+            <motion.div variants={fadeInUp} style={styles.sectionHeader}>
+              <h2 style={styles.sectionTitle}>
+                Why Choose <span style={styles.gradientText}>AsanaIQ?</span>
+              </h2>
+              <p style={styles.sectionDescription}>
+                Transform your yoga practice with intelligent matching and personalized guidance
               </p>
-              <ul style={styles.featureList}>
-                <li><CheckCircle size={18} color="#8B5CF6" /> Personalized Stress Relief</li>
-                <li><CheckCircle size={18} color="#8B5CF6" /> Deep Breathing Techniques</li>
-                <li><CheckCircle size={18} color="#8B5CF6" /> Sleep Quality Improvement</li>
-              </ul>
             </motion.div>
-          </div>
-        </div>
-      </section>
 
-      {/* 5. CALL TO ACTION SECTION */}
-      <section style={styles.ctaBannerSection}>
-        <div style={styles.container}>
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            style={styles.ctaBanner}
-          >
-            <h2 style={styles.ctaTitle}>Ready to transform your life?</h2>
-            <p style={styles.ctaText}>Join AsanaIQ today and start your 7-day free trial with any trainer.</p>
-            <Link to="/register" style={styles.ctaBtn}>
-              Join the Community Now
-            </Link>
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              style={styles.benefitGrid}
+            >
+              {[
+                {
+                  icon: Brain,
+                  title: "AI-Powered Matching",
+                  description: "Our intelligent algorithm matches you with the perfect trainer based on your goals and style"
+                },
+                {
+                  icon: Activity,
+                  title: "Personalized Plans",
+                  description: "Get custom yoga routines tailored to your fitness level, injuries, and aspirations"
+                },
+                {
+                  icon: Heart,
+                  title: "Holistic Wellness",
+                  description: "Balance body, mind, and spirit with guidance from certified professionals"
+                },
+                {
+                  icon: Sun,
+                  title: "Flexible Scheduling",
+                  description: "Train anytime, anywhere with live sessions that fit your busy lifestyle"
+                },
+                {
+                  icon: Zap,
+                  title: "Progress Tracking",
+                  description: "Monitor your improvement with AI-generated weekly insights and feedback"
+                },
+                {
+                  icon: ShieldCheck,
+                  title: "Safe & Certified",
+                  description: "All trainers are verified professionals with expertise in injury prevention"
+                }
+              ].map((benefit, idx) => (
+                <motion.div
+                  key={idx}
+                  variants={scaleIn}
+                  whileHover={{ y: -10, transition: { duration: 0.3 } }}
+                  style={styles.benefitCard}
+                >
+                  <div style={styles.benefitIconWrapper}>
+                    <benefit.icon size={32} style={{ color: '#06B6D4' }} />
+                  </div>
+                  <h3 style={styles.benefitTitle}>{benefit.title}</h3>
+                  <p style={styles.benefitDescription}>{benefit.description}</p>
+                </motion.div>
+              ))}
+            </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer style={styles.footer}>
-        <div style={styles.container}>
-          <div style={styles.footerContent}>
-            <div style={styles.footerBrand}>
-              <h3 style={styles.footerLogo}>AsanaIQ</h3>
-              <p style={styles.footerTagline}>The future of personalized yoga.</p>
-            </div>
-            <div style={styles.footerLinks}>
-              <Link to="/about">About</Link>
-              <Link to="/privacy">Privacy</Link>
-              <Link to="/terms">Terms</Link>
-              <Link to="/contact">Contact</Link>
-            </div>
-          </div>
-          <div style={styles.footerBottom}>
-            © 2026 AsanaIQ. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      {/* CTA SECTION */}
+      <section style={styles.ctaSection}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeInUp}
+          style={styles.ctaContent}
+        >
+          <h2 style={styles.ctaTitle}>Ready to Transform Your Practice?</h2>
+          <p style={styles.ctaDescription}>
+            Join thousands of students on their yoga journey. Start free today.
+          </p>
+          <Link to="/register" style={styles.ctaButton}>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Begin Your Free Trial
+            </motion.div>
+          </Link>
+        </motion.div>
+      </section>
     </div>
   );
 };
 
-const BenefitCard = ({ icon, title, desc, image }) => (
-  <motion.div 
-    whileHover={{ y: -10 }}
-    style={styles.benefitCard}
-  >
-    <div style={styles.cardImageWrapper}>
-      <img src={image} alt={title} style={styles.cardImage} />
-    </div>
-    <div style={styles.cardContent}>
-      <div style={styles.cardIcon}>{icon}</div>
-      <h3 style={styles.cardTitle}>{title}</h3>
-      <p style={styles.cardDesc}>{desc}</p>
-    </div>
-  </motion.div>
-);
-
+// ==================== STYLES ====================
 const styles = {
   landingWrapper: {
-    backgroundColor: '#FAFAF9',
-    color: '#1C1917',
-    fontFamily: "'Inter', sans-serif",
-    overflowX: 'hidden',
+    fontFamily: "'Poppins', 'Segoe UI', sans-serif",
+    color: '#1F2937',
+    overflow: 'hidden',
+    background: 'linear-gradient(135deg, #F0F9FF 0%, #F5F3FF 100%)'
   },
-  container: {
-    maxWidth: '1440px',
-    margin: '0 auto',
-    padding: '0 40px',
-  },
+
+  // ============ HERO SECTION ============
   heroSection: {
-    padding: '140px 0 100px 0',
-    backgroundColor: '#fff',
-    backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%)',
-  },
-  heroContent: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '80px',
-    flexWrap: 'wrap',
-  },
-  heroText: {
-    flex: 1,
-    minWidth: '320px',
-  },
-  badge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '8px 16px',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    color: '#8B5CF6',
-    borderRadius: '100px',
-    fontSize: '14px',
-    fontWeight: '700',
-    marginBottom: '32px',
-  },
-  mainTitle: {
-    fontSize: '64px',
-    lineHeight: '1.1',
-    fontWeight: '900',
-    marginBottom: '24px',
-    letterSpacing: '-0.03em',
-  },
-  gradientText: {
-    background: 'linear-gradient(90deg, #8B5CF6 0%, #D946EF 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-  subTitle: {
-    fontSize: '22px',
-    color: '#78716C',
-    lineHeight: '1.6',
-    marginBottom: '40px',
-    maxWidth: '540px',
-  },
-  ctaGroup: {
-    display: 'flex',
-    gap: '16px',
-    marginBottom: '48px',
-  },
-  primaryBtn: {
-    backgroundColor: '#8B5CF6',
-    color: '#fff',
-    padding: '18px 36px',
-    borderRadius: '16px',
-    fontSize: '18px',
-    fontWeight: '700',
-    textDecoration: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    transition: 'all 0.3s ease',
-    boxShadow: '0 10px 30px -10px rgba(139, 92, 246, 0.5)',
-  },
-  secondaryBtn: {
-    backgroundColor: '#fff',
-    color: '#0F172A',
-    padding: '18px 36px',
-    borderRadius: '16px',
-    fontSize: '18px',
-    fontWeight: '700',
-    textDecoration: 'none',
-    border: '2px solid #E7E5E4',
-    transition: 'all 0.3s ease',
-  },
-  trustRow: {
-    display: 'flex',
-    gap: '32px',
-  },
-  trustItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '16px',
-    color: '#78716C',
-    fontWeight: '600',
-  },
-  heroImageWrapper: {
-    flex: 1,
-    minWidth: '400px',
     position: 'relative',
-    perspective: '1000px',
-  },
-  heroImage: {
-    width: '100%',
-    borderRadius: '32px',
-    boxShadow: '0 50px 100px -20px rgba(0,0,0,0.2)',
-  },
-  floatingCard: {
-    position: 'absolute',
-    top: '40px',
-    right: '-20px',
-    backgroundColor: '#fff',
-    padding: '16px 24px',
-    borderRadius: '20px',
-    boxShadow: '0 20px 50px rgba(0,0,0,0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    fontWeight: '700',
-    border: '1px solid #F5F5F4',
-  },
-  benefitsSection: {
-    padding: '140px 0',
-    backgroundColor: '#FAFAF9',
-  },
-  platformFeaturesSection: {
-    padding: '120px 0',
-    backgroundColor: '#fff',
-  },
-  featureColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '120px',
-  },
-  splitFeatureRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '80px',
-    flexWrap: 'wrap',
-  },
-  splitFeatureRowReverse: {
-    display: 'flex',
-    alignItems: 'center',
-    flexDirection: 'row-reverse',
-    gap: '80px',
-    flexWrap: 'wrap',
-  },
-  splitFeatureImage: {
-    flex: 1,
-    minWidth: '400px',
-  },
-  splitFeatureText: {
-    flex: 1,
-    minWidth: '320px',
-  },
-  featureImg: {
-    width: '100%',
-    borderRadius: '32px',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-  },
-  featureNumber: {
-    fontSize: '48px',
-    fontWeight: '900',
-    color: 'rgba(139, 92, 246, 0.15)',
-    marginBottom: '-20px',
-    fontFamily: 'serif',
-  },
-  textLink: {
-    color: '#8B5CF6',
-    fontWeight: '700',
-    textDecoration: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginTop: '16px',
-    transition: 'gap 0.3s ease',
-  },
-  sectionHeader: {
-    textAlign: 'center',
-    marginBottom: '80px',
-  },
-  sectionTitle: {
-    fontSize: '48px',
-    fontWeight: '800',
-    marginBottom: '16px',
-    letterSpacing: '-0.02em',
-  },
-  sectionDesc: {
-    fontSize: '20px',
-    color: '#78716C',
-    maxWidth: '600px',
-    margin: '0 auto',
-  },
-  benefitsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '24px',
-  },
-  benefitCard: {
-    backgroundColor: '#fff',
-    borderRadius: '32px',
-    overflow: 'hidden',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-    border: '1px solid #F5F5F4',
-    transition: 'all 0.3s ease',
-  },
-  cardImageWrapper: {
-    height: '180px',
-    overflow: 'hidden',
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    transition: 'transform 0.5s ease',
-  },
-  cardContent: {
-    padding: '24px',
-  },
-  cardIcon: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '12px',
-    backgroundColor: '#FAFAF9',
+    height: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '16px',
+    overflow: 'hidden'
   },
-  cardTitle: {
-    fontSize: '20px',
-    fontWeight: '800',
-    marginBottom: '8px',
-  },
-  cardDesc: {
-    fontSize: '14px',
-    color: '#78716C',
-    lineHeight: '1.5',
-  },
-  featureHighlightSection: {
-    padding: '120px 0',
-    backgroundColor: '#fff',
-  },
-  featureRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '80px',
-    flexWrap: 'wrap',
-  },
-  featureImageSide: {
-    flex: 1,
-    minWidth: '400px',
-  },
-  roundedImage: {
+
+  backgroundVideo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
     width: '100%',
-    borderRadius: '40px',
-    boxShadow: '0 30px 60px -12px rgba(0,0,0,0.15)',
+    height: '100%',
+    objectFit: 'cover',
+    zIndex: 1
   },
-  featureTextSide: {
-    flex: 1,
-    minWidth: '320px',
+
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(180deg, rgba(10, 15, 30, 0.45) 0%, rgba(40, 15, 70, 0.35) 50%, rgba(10, 15, 30, 0.45) 100%)',
+    zIndex: 2,
+    backdropFilter: 'blur(1px)'
   },
-  smallBadge: {
-    fontSize: '14px',
-    fontWeight: '800',
-    color: '#8B5CF6',
-    letterSpacing: '0.1em',
-    marginBottom: '16px',
-  },
-  h2Title: {
-    fontSize: '42px',
-    fontWeight: '800',
-    marginBottom: '24px',
-  },
-  pText: {
-    fontSize: '18px',
-    color: '#78716C',
-    lineHeight: '1.7',
-    marginBottom: '32px',
-  },
-  featureList: {
-    listStyle: 'none',
-    padding: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  ctaBannerSection: {
-    padding: '120px 0',
-    backgroundColor: '#fff',
-  },
-  ctaBanner: {
-    backgroundColor: '#8B5CF6',
-    borderRadius: '40px',
-    padding: '80px 40px',
+
+  heroContainer: {
+    position: 'relative',
+    zIndex: 3,
     textAlign: 'center',
-    color: '#fff',
-    backgroundImage: 'linear-gradient(135deg, #8B5CF6 0%, #D946EF 100%)',
-    boxShadow: '0 30px 60px -15px rgba(139, 92, 246, 0.4)',
+    maxWidth: '920px',
+    paddingBottom: '40px',
+    animation: 'fadeInScale 0.8s ease-out'
   },
-  ctaTitle: {
-    fontSize: '42px',
-    fontWeight: '900',
-    marginBottom: '20px',
-  },
-  ctaText: {
-    fontSize: '20px',
-    marginBottom: '40px',
-    opacity: 0.9,
-  },
-  ctaBtn: {
-    backgroundColor: '#fff',
-    color: '#8B5CF6',
-    padding: '20px 40px',
-    borderRadius: '20px',
-    fontSize: '20px',
-    fontWeight: '800',
-    textDecoration: 'none',
-    display: 'inline-block',
-    transition: 'all 0.3s ease',
-  },
-  footer: {
-    padding: '100px 0 60px 0',
-    backgroundColor: '#FAFAF9',
-    borderTop: '1px solid #E7E5E4',
-  },
-  footerContent: {
-    display: 'flex',
-    justifyContent: 'space-between',
+
+  heroBadge: {
+    display: 'inline-flex',
     alignItems: 'center',
+    background: 'rgba(255, 255, 255, 0.08)',
+    backdropFilter: 'blur(20px)',
+    padding: '11px 22px',
+    borderRadius: '50px',
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontSize: '13px',
+    fontWeight: '600',
+    marginBottom: '28px',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+    letterSpacing: '0.08em',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+    transition: 'all 0.3s ease'
+  },
+
+  heroTitle: {
+    fontSize: '76px',
+    fontWeight: '700',
+    lineHeight: '1.1',
+    marginBottom: '28px',
+    color: '#FFFFFF',
+    letterSpacing: '-0.8px',
+    textShadow: '0 2px 8px rgba(0, 0, 0, 0.4), 0 6px 16px rgba(0, 0, 0, 0.3)',
+    fontFamily: "'Poppins', sans-serif",
+    fontSmoothing: 'antialiased',
+    wordSpacing: '0.1em'
+  },
+
+  heroSubtitle: {
+    fontSize: '20px',
+    color: 'rgba(255, 255, 255, 0.92)',
+    marginBottom: '48px',
+    lineHeight: '1.8',
+    fontWeight: '400',
+    textShadow: '0 2px 6px rgba(0, 0, 0, 0.4)',
+    maxWidth: '720px',
+    margin: '0 auto 48px',
+    letterSpacing: '0.2px',
+    fontFamily: "'Poppins', sans-serif"
+  },
+
+  ctaButtonGroup: {
+    display: 'flex',
+    gap: '16px',
+    justifyContent: 'center',
     flexWrap: 'wrap',
-    gap: '40px',
-    marginBottom: '60px',
+    marginBottom: '60px'
   },
-  footerBrand: {
-    maxWidth: '300px',
+
+  primaryButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)',
+    color: 'white',
+    padding: '15px 44px',
+    borderRadius: '12px',
+    fontWeight: '600',
+    fontSize: '15px',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    boxShadow: '0 10px 30px rgba(6, 182, 212, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+    transition: 'all 0.3s ease',
+    border: 'none',
+    textShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+    letterSpacing: '0.4px',
+    fontFamily: "'Poppins', sans-serif"
   },
-  footerLogo: {
-    fontSize: '28px',
-    fontWeight: '900',
-    marginBottom: '12px',
-    background: 'linear-gradient(90deg, #8B5CF6 0%, #D946EF 100%)',
+
+  secondaryButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(20px)',
+    color: 'rgba(255, 255, 255, 0.95)',
+    padding: '15px 44px',
+    borderRadius: '12px',
+    fontWeight: '600',
+    fontSize: '15px',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    border: '1.5px solid rgba(255, 255, 255, 0.25)',
+    transition: 'all 0.3s ease',
+    textShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+    letterSpacing: '0.4px',
+    fontFamily: "'Poppins', sans-serif"
+  },
+
+  trustIndicators: {
+    display: 'flex',
+    gap: '24px',
+    justifyContent: 'center',
+    flexWrap: 'wrap'
+  },
+
+  trustCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    background: 'rgba(255, 255, 255, 0.07)',
+    backdropFilter: 'blur(20px)',
+    padding: '16px 26px',
+    borderRadius: '12px',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    color: 'rgba(255, 255, 255, 0.95)',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)'
+  },
+
+  trustNumber: {
+    fontSize: '18px',
+    fontWeight: '700',
+    textShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+    color: 'rgba(255, 255, 255, 0.98)',
+    letterSpacing: '-0.3px'
+  },
+
+  trustLabel: {
+    fontSize: '12px',
+    opacity: 0.85,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.8)',
+    letterSpacing: '0.05em'
+  },
+
+  floatingOrb1: {
+    position: 'absolute',
+    width: '300px',
+    height: '300px',
+    background: 'rgba(6, 182, 212, 0.1)',
+    borderRadius: '50%',
+    top: '10%',
+    right: '-50px',
+    zIndex: 0,
+    filter: 'blur(40px)'
+  },
+
+  floatingOrb2: {
+    position: 'absolute',
+    width: '250px',
+    height: '250px',
+    background: 'rgba(168, 85, 247, 0.1)',
+    borderRadius: '50%',
+    bottom: '20%',
+    left: '-40px',
+    zIndex: 0,
+    filter: 'blur(40px)'
+  },
+
+  gradientText: {
+    background: 'linear-gradient(135deg, #00D9FF 0%, #9D4EDD 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    display: 'inline-block',
+    fontWeight: 'inherit',
+    filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))'
   },
-  footerTagline: {
-    color: '#78716C',
-    fontSize: '16px',
+
+  // ============ BENEFITS SECTION ============
+  benefitsSection: {
+    padding: '120px 20px',
+    background: '#FFFFFF'
   },
-  footerLinks: {
-    display: 'flex',
-    gap: '32px',
+
+  container: {
+    maxWidth: '1200px',
+    margin: '0 auto'
   },
-  footerBottom: {
+
+  benefitsContent: {
+    width: '100%'
+  },
+
+  sectionHeader: {
     textAlign: 'center',
-    paddingTop: '40px',
-    borderTop: '1px solid #E7E5E4',
-    color: '#A8A29E',
+    marginBottom: '80px'
+  },
+
+  sectionTitle: {
+    fontSize: '48px',
+    fontWeight: '700',
+    marginBottom: '20px',
+    color: '#1F2937',
+    lineHeight: '1.2'
+  },
+
+  sectionDescription: {
+    fontSize: '18px',
+    color: '#6B7280',
+    maxWidth: '600px',
+    margin: '0 auto',
+    lineHeight: '1.6'
+  },
+
+  benefitGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '32px'
+  },
+
+  benefitCard: {
+    background: 'linear-gradient(135deg, #F0F9FF 0%, #F5F3FF 100%)',
+    padding: '40px 32px',
+    borderRadius: '16px',
+    textAlign: 'center',
+    border: '2px solid transparent',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    position: 'relative',
+    overflow: 'hidden'
+  },
+
+  benefitIconWrapper: {
+    width: '64px',
+    height: '64px',
+    background: 'rgba(6, 182, 212, 0.1)',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 20px',
+    transition: 'all 0.3s ease'
+  },
+
+  benefitTitle: {
+    fontSize: '20px',
+    fontWeight: '700',
+    marginBottom: '12px',
+    color: '#1F2937'
+  },
+
+  benefitDescription: {
     fontSize: '14px',
+    color: '#6B7280',
+    lineHeight: '1.6'
+  },
+
+  // ============ CTA SECTION ============
+  ctaSection: {
+    padding: '100px 20px',
+    background: 'linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)',
+    textAlign: 'center'
+  },
+
+  ctaContent: {
+    maxWidth: '800px',
+    margin: '0 auto'
+  },
+
+  ctaTitle: {
+    fontSize: '48px',
+    fontWeight: '700',
+    color: 'white',
+    marginBottom: '20px',
+    lineHeight: '1.2'
+  },
+
+  ctaDescription: {
+    fontSize: '20px',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: '40px',
+    lineHeight: '1.6'
+  },
+
+  ctaButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'white',
+    color: '#06B6D4',
+    padding: '16px 48px',
+    borderRadius: '12px',
+    fontWeight: '700',
+    fontSize: '16px',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)'
   }
 };
 

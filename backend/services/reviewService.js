@@ -94,7 +94,31 @@ async function listTrainerReviews(trainerId) {
   }));
 }
 
+async function listStudentReviews(studentId) {
+  const reviews = await reviewRepository.listByStudentId(studentId);
+  const trainerIds = [...new Set(reviews.map((r) => r.trainerId).filter(Boolean))];
+
+  const trainerNames = {};
+  await Promise.all(
+    trainerIds.map(async (id) => {
+      try {
+        const user = await userRepository.getUserById(id);
+        if (user) trainerNames[id] = user.name || 'Trainer';
+      } catch (err) {
+        // ignore
+      }
+    })
+  );
+
+  return reviews.map((r) => ({
+    ...r,
+    trainerName: trainerNames[r.trainerId] || 'Unknown Trainer',
+  }));
+}
+
 module.exports = {
   createReview,
   listTrainerReviews,
+  listStudentReviews,
 };
+

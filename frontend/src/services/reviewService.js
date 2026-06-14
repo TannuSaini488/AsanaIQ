@@ -12,3 +12,9 @@ export async function fetchTrainerReviews(trainerId) {
   const res = await requestWithLocalToken(`/api/reviews/trainer/${trainerId}`);
   return res.data?.reviews || [];
 }
+
+export async function getReviewsForStudent(studentId) {
+  const res = await requestWithLocalToken(`/api/reviews/student/${studentId}`);
+  return res.data?.reviews || [];
+}
+

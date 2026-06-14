@@ -1,5 +1,5 @@
 const reviewService = require('../services/reviewService');
-const { createReviewSchema, trainerIdParamsSchema } = require('../validators/reviewValidator');
+const { createReviewSchema, trainerIdParamsSchema, studentIdParamsSchema } = require('../validators/reviewValidator');
 
 async function create(req, res, next) {
   try {
@@ -21,7 +21,19 @@ async function listByTrainer(req, res, next) {
   }
 }
 
+async function listByStudent(req, res, next) {
+  try {
+    const { studentId } = studentIdParamsSchema.parse(req.params);
+    const reviews = await reviewService.listStudentReviews(studentId);
+    res.success({ reviews }, 'Reviews fetched');
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   create,
   listByTrainer,
+  listByStudent,
 };
+

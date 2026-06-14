@@ -18,12 +18,14 @@ import { SocketProvider } from './contexts/SocketContext';
 import { CallProvider } from './contexts/CallContext';
 import GlobalCallUI from './components/GlobalCallUI';
 import AIChatbotWidget from './components/AIChatbotWidget';
+import useAuth from './hooks/useAuth';
 
 // Routes where the full Navbar should be hidden
 const NO_NAVBAR_ROUTES = ['/onboarding', '/trainer-onboarding'];
 
 function App() {
   const location = useLocation();
+  const { token } = useAuth();
   const hideNavbar = NO_NAVBAR_ROUTES.includes(location.pathname);
 
   return (
@@ -115,7 +117,7 @@ function App() {
           </main>
         </div>
         <GlobalCallUI />
-        <AIChatbotWidget />
+        {token && <AIChatbotWidget />}
       </CallProvider>
     </SocketProvider>
   );
