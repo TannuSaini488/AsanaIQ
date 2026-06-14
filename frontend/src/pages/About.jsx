@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Heart, ShieldCheck, Target, Users, Zap, Globe } from 'lucide-react';
 
 const About = () => {
-  const aboutImage = "/assets/yoga_meditation.png"; // Reusing high-quality asset
+  const aboutImage = "https://res.cloudinary.com/drgqsqxtx/image/upload/v1781446653/yoga_meditation_gaxdbw.jpg"; // Reusing high-quality asset
 
   return (
     <div className="about-page" style={styles.pageWrapper}>

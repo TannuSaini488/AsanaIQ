@@ -61,7 +61,7 @@ const Landing = () => {
           onLoadedData={() => setVideoLoaded(true)}
           style={styles.backgroundVideo}
         >
-          <source src="/assets/7580347-uhd_3840_2160_25fps.mp4" type="video/mp4" />
+          <source src="https://res.cloudinary.com/drgqsqxtx/video/upload/v1781447138/7580347-uhd-3840-2160-25fps_icTz4OFt_iejgxt.mp4" type="video/mp4" />
         </video>
 
         {/* Overlay Gradient */}
@@ -316,6 +316,7 @@ const styles = {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
+    objectPosition: 'center top',
     zIndex: 1
   },
 
