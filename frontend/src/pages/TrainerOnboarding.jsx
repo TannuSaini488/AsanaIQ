@@ -68,6 +68,10 @@ function TrainerOnboarding({ isEmbedded = false }) {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (step < totalSteps) {
+      nextStep();
+      return;
+    }
     setSaving(true);
     setError('');
     setMessage('');
@@ -212,7 +216,7 @@ function TrainerOnboarding({ isEmbedded = false }) {
         {loading ? (
           <p style={styles.loadingText}>Loading your profile...</p>
         ) : (
-          <form onSubmit={onSubmit}>
+          <div>
             {/* Step 1: Basic Info & Bio */}
             {step === 1 && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
@@ -380,7 +384,8 @@ function TrainerOnboarding({ isEmbedded = false }) {
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={onSubmit}
                   style={styles.primaryButton}
                   disabled={saving}
                 >
@@ -389,7 +394,7 @@ function TrainerOnboarding({ isEmbedded = false }) {
                 </button>
               )}
             </div>
-          </form>
+          </div>
         )}
       </motion.div>
     </div>
